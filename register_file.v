@@ -44,12 +44,10 @@ input [3:0] instruction_writer[0:3]);
                 values[retirement_target_reg[i]] <= retirement_write_data[i];
 
                 if (m_read_data_owner[retirement_target_reg[i]] == instruction_writer[i]) begin 
-                    m_read_data_busy[retirement_target_reg[i] <= 0;
+                    m_read_data_busy[retirement_target_reg[i]] <= 0;
                 end
             end
         end
     end
 
 endmodule
-
-
