@@ -2,11 +2,17 @@ module register_file
 (input clk, 
 
 // READ PORT for instruction buffer
-input instr_buffer_read_enable[0:7], input [3:0] instr_buffer_read_addr[0:7], output [15:0] read_data_value[0:7], output read_data_busy[0:7], output [3:0] read_data_owner[0:7],
+input instr_buffer_read_enable[0:7], 
+input [3:0] instr_buffer_read_addr[0:7], 
+output [15:0] read_data_value[0:7], 
+output read_data_busy[0:7], 
+output [3:0] read_data_owner[0:7],
 
 // WRITE PORT
-input retirement_write_data_enable[0:2], input [3:0] retirement_target_reg[0:2], input [15:0] retirement_write_data[0:2]
-);
+input retirement_write_data_enable[0:3], 
+input [3:0] retirement_target_reg[0:3], 
+input [15:0] retirement_write_data[0:3], 
+input [3:0] instruction_writer[0:3]);
 
     reg [15:0] values[0:15];
     reg busy[0:15];
@@ -33,9 +39,14 @@ input retirement_write_data_enable[0:2], input [3:0] retirement_target_reg[0:2],
         end
 
         // write
-        for (i = 0; i < 3; i++) begin
-            if (retirement_write_data_enable[i])
+        for (i = 0; i < 4; i++) begin
+            if (retirement_write_data_enable[i]) begin
                 values[retirement_target_reg[i]] <= retirement_write_data[i];
+
+                if (m_read_data_owner[retirement_target_reg[i]] == instruction_writer[i]) begin 
+                    m_read_data_busy[retirement_target_reg[i] <= 0;
+                end
+            end
         end
     end
 
