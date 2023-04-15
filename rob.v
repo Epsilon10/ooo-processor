@@ -9,6 +9,7 @@ module ROB
 
 // new instructions we're putting into ROB. Mark as invalid.
 input [2:0] num_instructions,
+input [3:0] new_targets[0:4],
 
 // instructions that are finished executing
 input [2:0] num_finished, 
@@ -27,6 +28,7 @@ output [3:0] size);
 
     reg [2:0] num_retire = 0;
 
+    reg [3:0] target_registers[0:15];
     reg [15:0] return_values[0:15];
     reg finished[0:15];
     integer i;
@@ -60,6 +62,7 @@ output [3:0] size);
 
         for (i = 0; i < num_instructions; i++) begin 
             finished[head + i] <= 0;
+            target_registers[head + i] <= new_targets[i];
         end
         head <= head + num_instructions;
 
