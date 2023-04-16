@@ -104,6 +104,9 @@ module reservation_station(input clk,
         else if (wen) begin
             write_failed_reg <= 1;
         end
+
+
+        // update any operands which aren't ready if common data bus has value
         
 
         // output next ready instruction
