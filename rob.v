@@ -1,6 +1,6 @@
-// Overflows and size calculations for m_head/m_tail just magically work.
+// Overflows and size calculations for head/tail just magically work.
 
-// On cycle 0, we mark instructions as m_finished
+// On cycle 0, we mark instructions as finished
 // On cycle 1, we actually retire the instructions
 
 module ROB
@@ -10,12 +10,12 @@ module ROB
 input instructions_valid[0:3],
 input [3:0] new_targets[0:3],
 
-// instructions that are m_finished executing
+// instructions that are finished executing
 input cdb_valid[0:3],
 input [3:0] indices[0:3],
 input [15:0] new_values[0:3],
 
-// output the returned values of m_finished instructions
+// output the returned values of finished instructions
 output out_finished[0:15],
 output [15:0] out_values[0:15],
 
