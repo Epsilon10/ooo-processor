@@ -25,8 +25,9 @@ output [3:0] register_targets[0:3],
 output [15:0] register_write_data[0:3],
 output [3:0] register_writers[0:3],
 
-// always output the current size
-output [3:0] size);
+// always output the current size and head
+output [3:0] size,
+output [3:0] head);
 
     reg [3:0] m_head = 0;
     reg [3:0] m_tail = 0;
@@ -60,6 +61,7 @@ output [3:0] size);
     assign register_writers = m_register_writers;
 
     assign size = m_head - m_tail;
+    assign head = m_head;
 
     always @(posedge clk) begin 
         // write to registers
