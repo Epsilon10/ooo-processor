@@ -109,7 +109,43 @@ module reservation_station(input clk,
         end
 
 
-        // update any operands which aren't ready if common data bus has value
+        // update any operands which aren't ready if common data bus has value  
+        for(i = 0; i < 4; i = i + 1) begin
+            if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
+                val1[i] <= cdb_result[0];
+                op1_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op1[i])) begin
+                val1[i] <= cdb_result[1];
+                op1_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op1[i])) begin
+                val1[i] <= cdb_result[2];
+                op1_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op1[i])) begin
+                val1[i] <= cdb_result[3];
+                op1_valid[i] <= 1;
+            end
+
+
+            if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op2[i])) begin
+                val2[i] <= cdb_result[0];
+                op2_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op2[i])) begin
+                val2[i] <= cdb_result[1];
+                op2_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op2[i])) begin
+                val2[i] <= cdb_result[2];
+                op2_valid[i] <= 1;
+            end
+            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op2[i])) begin
+                val2[i] <= cdb_result[3];
+                op2_valid[i] <= 1;
+            end
+        end
         
 
         // output next ready instruction
