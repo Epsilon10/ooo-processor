@@ -26,7 +26,7 @@ output [3:0] rb_out[0:3]
 
     initial begin 
         integer p;
-        for(p = 1; p < 5; p++) begin 
+        for(p = 0; p < 4; p++) begin 
             m_pc_to_icache[p] = 2*p;
         end
     end
@@ -34,7 +34,7 @@ output [3:0] rb_out[0:3]
     always @(posedge clk) begin 
         integer i;
         
-        for (i = 1; i < 4; i++) begin
+        for (i = 0; i < 4; i++) begin
             m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : m_pc_to_icache[i] + 2*(i+1);
         end
     end

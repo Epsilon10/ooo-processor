@@ -4,7 +4,10 @@ module reservation_station(input clk,
     input wen, input is_functional_unit_busy, 
     input [3:0]instr_index, input [15:0]instr_full, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
     output [3:0]out_instr_index, output [15:0]out_instr_full, output out_valid,
-    output [15:0]out_val1, output [15:0]out_val2, output write_failed);
+    output [15:0]out_val1, output [15:0]out_val2, output write_failed
+    // common data bus input
+    input cdb_valid[0:3], input [3:0]cdb_rob_index [0:3], input [15:0] cdb_result [0:3]
+    );
     // if the instruction only has one operand, pass in a value for the second one and set is_val_op2 to true
 
     reg [15:0]instruction_indices[3:0]; // holds instruction address in ROB
