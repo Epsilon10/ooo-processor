@@ -29,7 +29,7 @@ input fxu_0_full, input fxu_1_full, input lsu_full, input branch_full,
 // outputs
 output out_a_valid [0:3], output [15:0] out_a_value [0:3], output [3:0] out_a_owner [0:3], 
 output out_b_valid [0:3], output [15:0] out_b_value [0:3], output [3:0] out_b_owner [0:3], 
-output [3:0] out_rt [0:3]
+output [3:0] out_rt [0:3], output [3:0] opcode [0:3]
 );
 
 reg [3:0] ib_a_owner[0:3];
