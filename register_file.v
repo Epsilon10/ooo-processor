@@ -1,12 +1,17 @@
 module register_file
 (input clk, 
 
-// READ PORT for instruction buffer
-input instr_buffer_read_enable[0:7], 
-input [3:0] instr_buffer_read_addr[0:7], 
-output [15:0] read_data_value[0:7], 
-output read_data_busy[0:7], 
-output [3:0] read_data_owner[0:7],
+// READ PORT 1 for instruction fetcher
+input [3:0] instr_buffer_read_addr[0:3], 
+output [15:0] read_data_value[0:3], 
+output read_data_busy[0:3], 
+output [3:0] read_data_owner[0:3],
+
+// READ PORT 2 for instruciton fetcher
+input [3:0] instr_buffer_read_addr_2[0:3], 
+output [15:0] read_data_value_2[0:3], 
+output read_data_busy_2[0:3], 
+output [3:0] read_data_owner_2[0:3],
 
 // WRITE PORT
 input retirement_write_data_enable[0:3], 
@@ -18,24 +23,37 @@ input [3:0] instruction_writer[0:3]);
     reg busy[0:15];
     reg [3:0] owner[0:15];
 
-    reg [15:0] m_read_data_value[0:7];
-    reg m_read_data_busy[0:7];
-    reg [3:0] m_read_data_owner[0:7];
+    reg [15:0] m_read_data_value[0:3];
+    reg m_read_data_busy[0:3];
+    reg [3:0] m_read_data_owner[0:3];
+
+    reg [15:0] m_read_data_value_2[0:3];
+    reg m_read_data_busy_2[0:3];
+    reg [3:0] m_read_data_owner_2[0:3];
 
     assign read_data_value = m_read_data_value;
     assign read_data_busy = m_read_data_busy;
     assign read_data_owner = m_read_data_owner;
 
+    assign read_data_value_2 = m_read_data_value_2;
+    assign read_data_busy_2 = m_read_data_busy_2;
+    assign read_data_owner_2 = m_read_data_owner_2;
+
     always @(posedge clk) begin
         integer i;
 
-        // read
-        for (i = 0; i < 8; i++) begin
-            if (instr_buffer_read_enable[i]) begin
-                m_read_data_value[i] <= values[instr_buffer_read_addr[i]];
-                m_read_data_busy[i] <= busy[instr_buffer_read_addr[i]];
-                m_read_data_owner[i] <= owner[instr_buffer_read_addr[i]];
-            end
+        // read 1
+        for (i = 0; i < 4; i++) begin
+            m_read_data_value[i] <= values[instr_buffer_read_addr[i]];
+            m_read_data_busy[i] <= busy[instr_buffer_read_addr[i]];
+            m_read_data_owner[i] <= owner[instr_buffer_read_addr[i]];
+        end
+
+        // read 2
+        for (i = 0; i < 4; i++) begin
+            m_read_data_value_2[i] <= values[instr_buffer_read_addr_2[i]];
+            m_read_data_busy_2[i] <= busy[instr_buffer_read_addr_2[i]];
+            m_read_data_owner_2[i] <= owner[instr_buffer_read_addr_2[i]];
         end
 
         // write

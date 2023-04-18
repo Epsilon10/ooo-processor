@@ -7,6 +7,10 @@ input is_jump,
 input [15:0] instr[0:3],
  
 input [3:0]rob_head_idx,
+
+// num available slots in instruction buffer
+input num_fetch,
+
 // whats fed into icache
 output [15:0] pc_to_icache[0:3],
 
@@ -16,27 +20,36 @@ output op_a_local_dep_out[0:3], output [3:0] op_a_owner_out[0:3],
 output op_b_local_dep_out[0:3], output [3:0] op_b_owner_out[0:3],
 output [3:0] rt_out[0:3],
 
-// for memory
+// for register file
 output [3:0] ra_out[0:3],
-output [3:0] rb_out[0:3]
+output [3:0] rb_out[0:3],
 );
     
     reg [15:0] m_pc_to_icache[3:0];
     assign pc_to_icache = m_pc_to_icache;
 
+    reg [15:0] last_pc;
+
     initial begin 
         integer p;
-        for(p = 0; p < 4; p++) begin 
+        for(p = 0; p < num_fetch; p++) begin 
             m_pc_to_icache[p] = 2*p;
         end
+
+        last_pc = (num_fetch-1)*2;
     end
 
     always @(posedge clk) begin 
         integer i;
         
-        for (i = 0; i < 4; i++) begin
-            m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : m_pc_to_icache[i] + 2*(i+1);
+        for (i = 0; i < num_fetch; i++) begin
+            m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : last_pc + 2*(i+1);
         end
+    end
+
+    always @(negedge clk) begin
+        if (num_fetch > 0)
+            last_pc <= m_pc_to_icache[num_fetch - 1];
     end
 
     reg d_valid = 0;
