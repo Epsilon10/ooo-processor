@@ -12,13 +12,8 @@ input [3:0] rt[0:3],
 input uses_rb[0:3]
 
 // from regsiter file
-input [15:0] ra_value[0:3], 
-input ra_busy[0:3], 
-input [3:0] ra_owner[0:3],
-
-input [15:0] rb_value[0:3], 
-input rb_busy[0:3], 
-input [3:0] rb_owner[0:3],
+input [15:0] ra_value[0:3], input ra_busy[0:3], input [3:0] ra_owner[0:3],
+input [15:0] rb_value[0:3], input rb_busy[0:3], input [3:0] rb_owner[0:3],
 
 // rob input
 input rob_output_valid[0:15], input [15:0] rob_output_values[0:15],
