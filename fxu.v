@@ -1,3 +1,5 @@
+`timescale 1ps/1ps
+
 module FXU
 (input [3:0] opcode, input [3:0] in_index,
 input [3:0] vt, input [3:0] va, input [3:0] vb, input [8:0] i, // we receive decoded values

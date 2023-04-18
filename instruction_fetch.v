@@ -1,4 +1,6 @@
-module instruction_fetch
+`timescale 1ps/1ps
+
+module InstructionFetch
 (input clk,
 // output of branch unit
 input [15:0] jump_target,

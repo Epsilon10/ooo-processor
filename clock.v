@@ -1,5 +1,5 @@
 `timescale 1ps/1ps
-module clock(output clk);
+module Clock(output clk);
 
     reg theClock = 1;
     assign clk = theClock;

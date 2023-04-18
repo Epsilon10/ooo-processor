@@ -1,6 +1,6 @@
-`include "reservation_station.v"
+`timescale 1ps/1ps
 
-module instruction_buffer
+module InstructionBuffer
 (input clk,
 // from instruction fetch unit
 input if_valid, // instruction fetch valid

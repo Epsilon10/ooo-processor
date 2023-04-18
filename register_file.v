@@ -1,4 +1,6 @@
-module register_file
+`timescale 1ps/1ps
+
+module RegisterFile
 (input clk, 
 
 // READ PORT 1 for instruction fetcher

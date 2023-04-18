@@ -1,3 +1,5 @@
+`timescale 1ps/1ps
+
 // Overflows and size calculations for head/tail just magically work.
 
 // On cycle 0, we mark instructions as finished

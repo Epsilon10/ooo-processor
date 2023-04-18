@@ -1,6 +1,6 @@
 `timescale 1ps/1ps
 
-module reservation_station(input clk, 
+module ReservationStation(input clk, 
     input wen, input is_functional_unit_busy, 
     input [3:0]instr_index, input [15:0]instr_full, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
     output [3:0]out_instr_index, output [15:0]out_instr_full, output out_valid,

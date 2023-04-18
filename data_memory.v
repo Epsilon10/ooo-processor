@@ -1,3 +1,5 @@
+`timescale 1ps/1ps
+
 // memory that is 100 cycles delayed
 // same as pipeline memory but scaled up to 100 cycles
 
