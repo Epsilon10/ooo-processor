@@ -4,7 +4,7 @@ module reservation_station(input clk,
     input wen, input is_functional_unit_busy, 
     input [3:0]instr_index, input [15:0]instr_full, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
     output [3:0]out_instr_index, output [15:0]out_instr_full, output out_valid,
-    output [15:0]out_val1, output [15:0]out_val2, output write_failed
+    output [15:0]out_val1, output [15:0]out_val2, output write_failed, output is_full,
     // common data bus input
     input cdb_valid[0:3], input [3:0]cdb_rob_index [0:3], input [15:0] cdb_result [0:3]
     );
@@ -27,8 +27,9 @@ module reservation_station(input clk,
     reg [15:0]out_val1_reg;       // resolved value of operand 1
     reg [15:0]out_val2_reg;       // resolved value of operand 2
 
-    // is reservation station full
+    // is reservation station full when trying to write versus in general
     reg write_failed_reg = 0;
+    reg is_full_reg = 0;
 
     assign out_instr_index = out_instr_index_reg;
     assign out_instr_full = out_instr_full_reg;
@@ -37,6 +38,7 @@ module reservation_station(input clk,
     assign out_val2 = out_val2_reg;
     
     assign write_failed = write_failed_reg;
+    assign is_full = is_full_reg;
 
     always @(posedge clk) begin
         // write an instruction to a free spot in the reservation station
@@ -108,6 +110,7 @@ module reservation_station(input clk,
             write_failed_reg <= 1;
         end
 
+        is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
 
         // update any operands which aren't ready if common data bus has value  
         for(i = 0; i < 4; i = i + 1) begin
