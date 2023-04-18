@@ -101,29 +101,29 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
     // ra dependcy checking
     assign op_a_local_dep[0] = 0;
 
-    wire d_is_add_sub_1 = d_opcode[1] == 0 | d_opcode[1] == 1;
-    wire d_is_other_write_to_reg_1 = d_opcode[1] == 2 | d_opcode[1] == 4 | d_opcode[1] == 5 | d_opcode[1] == 6;
+    wire d_uses_ra_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 2 | d_opcode[1] == 3 
+        | d_opcode[1] == 8 | d_opcode[1] == 9 | d_opcode[1] == 10 | d_opcode[1] == 11;
 
-    assign op_a_owner[1] = (d_is_add_sub_3 | d_is_other_write_to_reg_3) & d_ra[1] == d_rt[0] ? 
+    assign op_a_owner[1] = d_uses_ra_1 & d_ra[1] == d_rt[0] ? 
                     rob_head_idx // ra_1 == rt_0
                     : rob_head_idx + 1;
 
     assign op_a_local_dep[1] = op_a_owner[1] == rob_head_idx + 1;
 
-    wire d_is_add_sub_2 = d_opcode[2] == 0 | d_opcode[2] == 1;
-    wire d_is_other_write_to_reg_2 = d_opcode[2] == 2 | d_opcode[2] == 4 | d_opcode[2] == 5 | d_opcode[2] == 6;
+    wire d_uses_ra_2 = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 2 | d_opcode[2] == 3 
+        | d_opcode[2] == 8 | d_opcode[2] == 9 | d_opcode[2] == 10 | d_opcode[2] == 11;
 
-    assign op_a_owner[2] = (d_is_add_sub_2 | d_is_other_write_to_reg_2) 
+    assign op_a_owner[2] = d_uses_ra_2 
                     ? (d_ra[2] == d_rt[1] ? (rob_head_idx + 1)  // ra_2 == rt_1
                     : d_ra[2] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 2) // ra_2 == rt_0
                     : rob_head_idx + 2;
 
     assign op_a_local_dep[2] = op_a_owner[2] == rob_head_idx + 2;
 
-    wire d_is_add_sub_3 = d_opcode[3] == 0 | d_opcode[3] == 1;
-    wire d_is_other_write_to_reg_3 = d_opcode[3] == 2 | d_opcode[3] == 4 | d_opcode[3] == 5 | d_opcode[3] == 6;
+    wire d_uses_ra_3 = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 2 | d_opcode[3] == 3 
+        | d_opcode[3] == 8 | d_opcode[3] == 9 | d_opcode[3] == 10 | d_opcode[3] == 11;
 
-    assign op_a_owner[3] = (d_is_add_sub_3 | d_is_other_write_to_reg_3) 
+    assign op_a_owner[3] = d_uses_ra_3 
                     ? (d_ra[3] == d_rt[2] ? (rob_head_idx + 2)  // ra_3 == rt_2
                     : d_ra[3] == d_rt[1] ? (rob_head_idx + 1) // ra_3 == rt_1
                     : d_ra[3] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 3) // ra_3 == rt_0
@@ -131,22 +131,30 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
 
     assign op_a_local_dep[3] = op_a_owner[3] == rob_head_idx + 3;
 
+    assign op_b_local_dep[0] = 0;
+
+    wire d_uses_rb_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 10 | d_opcode[1] == 11;
+
     // rb dependcy checking
-    // only adds and subs have an rb
-    assign op_b_owner[1] = d_is_add_sub_1 & d_rb[1] == d_rt[0] ? 
+    assign op_b_owner[1] = d_uses_rb_1 & d_rb[1] == d_rt[0] ? 
                     rob_head_idx // rb_1 == rt_0
                     : rob_head_idx + 1;
 
     assign op_b_local_dep[1] = op_b_owner[1] == rob_head_idx + 1;
 
-    assign op_b_owner[2] = d_is_add_sub_2 
+    wire d_uses_rb_2 = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 10 | d_opcode[2] == 11;
+
+
+    assign op_b_owner[2] = d_uses_rb_2
                     ? (d_rb[2] == d_rt[1] ? (rob_head_idx + 1)  // rb_2 == rt_1
                     : d_rb[2] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 2) // rb_2 == rt_0
                     : rob_head_idx + 2;
 
     assign op_b_local_dep[2] = op_b_owner[2] == rob_head_idx + 2;
 
-    assign op_b_owner[3] = d_is_add_sub_3
+    wire d_uses_rb_3 = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 10 | d_opcode[3] == 11;
+    
+    assign op_b_owner[3] = d_uses_rb_3
                     ? (d_rb[3] == d_rt[2] ? (rob_head_idx + 2)  // rb_3 == rt_2
                     : d_rb[3] == d_rt[1] ? (rob_head_idx + 1) // rb_3 == rt_1
                     : d_rb[3] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 3) // rb_3 == rt_0
