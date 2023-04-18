@@ -18,10 +18,11 @@ module Main;
     pc_array, instructions);
 
     // go to rob
-    wire rob_head;
+    wire [3:0] rob_head;
 
     // comes from branch unit
-    wire [15:0] branch_target, is_branch;
+    wire [15:0] branch_target;
+    wire is_branch;
 
     // go to instruction buffer
     wire [3:0] opcode_out[0:3];
@@ -32,11 +33,11 @@ module Main;
     wire [3:0] rt_out[0:3];
 
     // comes from instruction buffer
-    wire [3:0] num_slots; // PROBLEM!!!!!!!
+    wire num_slots; // PROBLEM!!!!!!!
 
     // go to register file
-    wire [3:0] ra_out[0:3],
-    wire [3:0] rb_out[0:3],
+    wire [3:0] ra_out[0:3];
+    wire [3:0] rb_out[0:3];
 
     InstructionFetch iFetcher
     (clk,
@@ -115,7 +116,7 @@ module Main;
     out_rt, opcode);
 
     // comes from instruction buffer
-    wire always_valid[0:3] = {1, 1, 1, 1}; // PROBLEM!!!!!!!
+    wire always_valid[0:3]; // PROBLEM!!!!!!!
 
     // come from functional units/common data bus
     wire cdb_valid[0:3];
