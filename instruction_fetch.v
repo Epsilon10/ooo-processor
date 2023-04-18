@@ -23,7 +23,7 @@ output op_b_local_dep_out[0:3], output [3:0] op_b_owner_out[0:3],
 output [3:0] rt_out[0:3],
 
 // for register file
-output [3:0] ra_out[0:3], output [3:0] rb_out[0:3],
+output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
 );
     
     reg [15:0] m_pc_to_icache[3:0];

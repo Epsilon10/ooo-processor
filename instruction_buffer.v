@@ -9,7 +9,7 @@ input [3:0] opcode[0:3],
 input op_a_local_dep[0:3], output [3:0] op_a_owner[0:3],
 input op_b_local_dep[0:3], output [3:0] op_b_owner[0:3],
 input [3:0] rt[0:3],
-input uses_rb[0:3]
+input uses_rb[0:3],
 
 // from regsiter file
 input [15:0] ra_value[0:3], input ra_busy[0:3], input [3:0] ra_owner[0:3],
@@ -24,8 +24,7 @@ input fxu_0_full, input fxu_1_full, input lsu_full, input branch_full,
 // outputs
 output out_a_valid [0:3], output [15:0] out_a_value [0:3], output [3:0] out_a_owner [0:3], 
 output out_b_valid [0:3], output [15:0] out_b_value [0:3], output [3:0] out_b_owner [0:3], 
-output [3:0] out_rt [0:3], output [3:0] opcode [0:3]
-);
+output [3:0] out_rt [0:3], output [3:0] opcode_out [0:3]);
 
 reg [3:0] ib_a_owner[0:3];
 reg [3:0] ib_b_owner[0:3];
