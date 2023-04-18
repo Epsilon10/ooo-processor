@@ -70,9 +70,14 @@ output [3:0] head);
         for(i = 0; i < 4; i++) begin 
             if (m_finished[m_tail + i]) begin 
                 m_register_write_enable[i] <= 1;
-                m_register_targets[i] <= m_tail + i;
+                m_register_targets[i] <= m_target_registers[m_tail + i];
                 m_register_write_data[i] <= m_return_values[m_tail + i];
                 m_register_writers[i] <= m_tail + i;
+
+                if (m_target_registers[m_tail + i] == 0) begin 
+                    $write("hello!");
+                    $write("%c", m_return_values[m_tail + i][7:0]);
+                end
             end
         end
 
