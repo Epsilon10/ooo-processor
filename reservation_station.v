@@ -1,7 +1,7 @@
 `timescale 1ps/1ps
 
 module ReservationStation(input clk, 
-    input wen, input is_functional_unit_busy, 
+    input wen, 
     input [3:0]instr_index, input [15:0]instr_full, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
     output [3:0]out_instr_index, output [15:0]out_instr_full, output out_valid,
     output [15:0]out_val1, output [15:0]out_val2, output write_failed, output is_full,
@@ -20,7 +20,7 @@ module ReservationStation(input clk,
     reg op2_valid[3:0];  // set to true once op2 resolves to a value
     reg [15:0]val2[3:0]; // store resolved value of operand 2
 
-    // output an instruction that is ready if stage 1 of the functional unit isn't busy
+    // output an instruction that is ready if stage 1 of the functional unit isn't busy (which it never is because it's pipelined)
     reg [3:0] out_instr_index_reg; // instruction address in ROB
     reg [15:0]out_instr_full_reg; // the instruction itself
     reg       out_valid_reg;            // is this an actual output
@@ -113,7 +113,7 @@ module ReservationStation(input clk,
         is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
 
         // update any operands which aren't ready if common data bus has value  
-        for(i = 0; i < 4; i = i + 1) begin
+        for(integer i = 0; i < 4; i = i + 1) begin
             if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
                 val1[i] <= cdb_result[0];
                 op1_valid[i] <= 1;
@@ -152,28 +152,32 @@ module ReservationStation(input clk,
         
 
         // output next ready instruction
-        if (~is_functional_unit_busy & instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
+        if (instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
+            instruction_valid[2'b00] <= 0;
             out_instr_index_reg <= instruction_indices[2'b00];
             out_instr_full_reg <= instructions[2'b00]; 
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b00];       
             out_val2_reg <= val2[2'b00];
         end
-        else if (~is_functional_unit_busy & instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
+        else if (instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
+            instruction_valid[2'b01] <= 0;
             out_instr_index_reg <= instruction_indices[2'b01];
             out_instr_full_reg <= instructions[2'b01]; 
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b01];       
             out_val2_reg <= val2[2'b01];
         end
-        else if (~is_functional_unit_busy & instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
+        else if (instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
+            instruction_valid[2'b10] <= 0;
             out_instr_index_reg <= instruction_indices[2'b10];
             out_instr_full_reg <= instructions[2'b10]; 
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b10];       
             out_val2_reg <= val2[2'b10];
         end
-        else if (~is_functional_unit_busy & instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
+        else if (instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
+            instruction_valid[2'b11] <= 0;
             out_instr_index_reg <= instruction_indices[2'b11];
             out_instr_full_reg <= instructions[2'b11]; 
             out_valid_reg <= 1;      
