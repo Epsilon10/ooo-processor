@@ -22,10 +22,16 @@ output op_a_local_dep_out[0:3], output [3:0] op_a_owner_out[0:3],
 output op_b_local_dep_out[0:3], output [3:0] op_b_owner_out[0:3],
 output [3:0] rt_out[0:3],
 
+output uses_rb_out[0:3],
+output is_ld_str_out[0:3],
+output is_fxu_out[0:3],
+output is_branch_out[0:3],
+
 // for register file
 output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
 );
-    
+    reg started = 0;
+
     reg [15:0] m_pc_to_icache[3:0];
     assign pc_to_icache = m_pc_to_icache;
 
@@ -34,21 +40,22 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
     initial begin 
         integer p;
         for(p = 0; p < num_fetch; p++) begin 
-            m_pc_to_icache[p] = 2*p;
+            m_pc_to_icache[p] = 0;
         end
 
-        last_pc = (num_fetch-1)*2;
+        last_pc = 0;
     end
 
     always @(posedge clk) begin 
         integer i;
         
         for (i = 0; i < num_fetch; i++) begin
-            m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : last_pc + 2*(i+1);
+            m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : (~started ? last_pc + 2*i : last_pc + 2*(i+1));
         end
     end
 
     always @(negedge clk) begin
+        started <= 1;
         if (num_fetch > 0)
             last_pc <= m_pc_to_icache[num_fetch - 1];
     end
@@ -102,26 +109,26 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
     assign op_a_local_dep[0] = 0;
 
     wire d_uses_ra_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 2 | d_opcode[1] == 3 
-        | d_opcode[1] == 8 | d_opcode[1] == 9 | d_opcode[1] == 10 | d_opcode[1] == 11;
+        | d_opcode[1] == 4 | d_opcode[1] == 8 | d_opcode[1] == 9 | d_opcode[1] == 10 | d_opcode[1] == 11;
 
     assign op_a_owner[1] = d_uses_ra_1 & d_ra[1] == d_rt[0] ? 
                     rob_head_idx // ra_1 == rt_0
                     : rob_head_idx + 1;
 
-    assign op_a_local_dep[1] = op_a_owner[1] == rob_head_idx + 1;
+    assign op_a_local_dep[1] = op_a_owner[1] != rob_head_idx + 1;
 
     wire d_uses_ra_2 = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 2 | d_opcode[2] == 3 
-        | d_opcode[2] == 8 | d_opcode[2] == 9 | d_opcode[2] == 10 | d_opcode[2] == 11;
+        | d_opcode[2] == 4 | d_opcode[2] == 8 | d_opcode[2] == 9 | d_opcode[2] == 10 | d_opcode[2] == 11;
 
     assign op_a_owner[2] = d_uses_ra_2 
                     ? (d_ra[2] == d_rt[1] ? (rob_head_idx + 1)  // ra_2 == rt_1
                     : d_ra[2] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 2) // ra_2 == rt_0
                     : rob_head_idx + 2;
 
-    assign op_a_local_dep[2] = op_a_owner[2] == rob_head_idx + 2;
+    assign op_a_local_dep[2] = op_a_owner[2] != rob_head_idx + 2;
 
     wire d_uses_ra_3 = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 2 | d_opcode[3] == 3 
-        | d_opcode[3] == 8 | d_opcode[3] == 9 | d_opcode[3] == 10 | d_opcode[3] == 11;
+        | d_opcode[3] == 4 | d_opcode[3] == 8 | d_opcode[3] == 9 | d_opcode[3] == 10 | d_opcode[3] == 11;
 
     assign op_a_owner[3] = d_uses_ra_3 
                     ? (d_ra[3] == d_rt[2] ? (rob_head_idx + 2)  // ra_3 == rt_2
@@ -129,20 +136,20 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
                     : d_ra[3] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 3) // ra_3 == rt_0
                     : rob_head_idx + 3;
 
-    assign op_a_local_dep[3] = op_a_owner[3] == rob_head_idx + 3;
+    assign op_a_local_dep[3] = op_a_owner[3] != rob_head_idx + 3;
 
     assign op_b_local_dep[0] = 0;
 
-    wire d_uses_rb_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 10 | d_opcode[1] == 11;
+    wire d_uses_rb_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 10 | d_opcode[1] == 11 | d_opcode[1] == 4;
 
     // rb dependcy checking
     assign op_b_owner[1] = d_uses_rb_1 & d_rb[1] == d_rt[0] ? 
                     rob_head_idx // rb_1 == rt_0
                     : rob_head_idx + 1;
 
-    assign op_b_local_dep[1] = op_b_owner[1] == rob_head_idx + 1;
+    assign op_b_local_dep[1] = op_b_owner[1] != rob_head_idx + 1;
 
-    wire d_uses_rb_2 = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 10 | d_opcode[2] == 11;
+    wire d_uses_rb_2 = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 10 | d_opcode[2] == 11 | d_opcode[2] == 4;
 
 
     assign op_b_owner[2] = d_uses_rb_2
@@ -150,17 +157,17 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
                     : d_rb[2] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 2) // rb_2 == rt_0
                     : rob_head_idx + 2;
 
-    assign op_b_local_dep[2] = op_b_owner[2] == rob_head_idx + 2;
+    assign op_b_local_dep[2] = op_b_owner[2] != rob_head_idx + 2;
 
-    wire d_uses_rb_3 = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 10 | d_opcode[3] == 11;
-    
+    wire d_uses_rb_3 = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 10 | d_opcode[3] == 11 | d_opcode[3] == 4;
+
     assign op_b_owner[3] = d_uses_rb_3
                     ? (d_rb[3] == d_rt[2] ? (rob_head_idx + 2)  // rb_3 == rt_2
                     : d_rb[3] == d_rt[1] ? (rob_head_idx + 1) // rb_3 == rt_1
                     : d_rb[3] == d_rt[0] ? (rob_head_idx + 0) : rob_head_idx + 3) // rb_3 == rt_0
                     : rob_head_idx + 3;
 
-    assign op_b_local_dep[3] = op_b_owner[3] == rob_head_idx + 3;
+    assign op_b_local_dep[3] = op_b_owner[3] != rob_head_idx + 3;
 
     assign op_a_local_dep_out = op_a_local_dep;
     assign op_a_owner_out = op_a_owner;
@@ -171,5 +178,28 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
     assign d_ra = ra_out;
     assign d_rb = rb_out;
     assign d_rt = rt_out;
+
+    wire is_ld_str[0:3];
+    wire is_fxu[0:3];
+    wire is_branch[0:3];
+
+    assign is_ld_str[0] = d_opcode[0] == 2 | d_opcode[0] == 3;
+    assign is_ld_str[1] = d_opcode[1] == 2 | d_opcode[1] == 3;
+    assign is_ld_str[2] = d_opcode[2] == 2 | d_opcode[2] == 3;
+    assign is_ld_str[3] = d_opcode[3] == 2 | d_opcode[3] == 3;
+
+    assign is_fxu[0] = d_opcode[0] == 0 | d_opcode[0] == 1 | d_opcode[0] == 4 | d_opcode[0] == 5 | d_opcode[0] == 6;
+    assign is_fxu[1] = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 4 | d_opcode[1] == 5 | d_opcode[1] == 6;
+    assign is_fxu[2] = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 4 | d_opcode[2] == 5 | d_opcode[2] == 6;
+    assign is_fxu[3] = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 4 | d_opcode[3] == 5 | d_opcode[3] == 6;
+
+    assign is_branch[0] = d_opcode[0] == 8 | d_opcode[0] == 9 | d_opcode[0] == 10 | d_opcode[0] == 11;
+    assign is_branch[1] = d_opcode[1] == 2 | d_opcode[1] == 3 | d_opcode[1] == 10 | d_opcode[1] == 11;
+    assign is_branch[2] = d_opcode[2] == 2 | d_opcode[2] == 3 | d_opcode[2] == 10 | d_opcode[2] == 11;
+    assign is_branch[3] = d_opcode[3] == 2 | d_opcode[3] == 3 | d_opcode[3] == 10 | d_opcode[3] == 11;
+    
+    assign is_ld_str_out = is_ld_str;
+    assign is_fxu_out = is_fxu;
+    assign is_branch_out = is_branch;
 
 endmodule
