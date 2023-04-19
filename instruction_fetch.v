@@ -32,7 +32,7 @@ output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
 );
     reg started = 0;
 
-    reg [15:0] m_pc_to_icache[3:0];
+    reg [15:0] m_pc_to_icache[0:3];
     assign pc_to_icache = m_pc_to_icache;
 
     reg [15:0] last_pc;
