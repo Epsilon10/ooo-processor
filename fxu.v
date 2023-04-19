@@ -2,7 +2,7 @@
 
 module FXU
 (input clk,
-input [3:0] opcode, input [3:0] in_index, in_valid,
+input [3:0] opcode, input [3:0] in_index, input in_valid,
 input [3:0] vt, input [3:0] va, input [3:0] vb, input [8:0] i, // we receive decoded values
 output out_valid, output [3:0] rob_index, output [15:0] return_value);
 
