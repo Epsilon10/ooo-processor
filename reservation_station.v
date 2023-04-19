@@ -153,6 +153,7 @@ module ReservationStation(input clk,
 
         // output next ready instruction
         if (~is_functional_unit_busy & instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
+            instruction_valid[2'b00] <= 0;
             out_instr_index_reg <= instruction_indices[2'b00];
             out_instr_full_reg <= instructions[2'b00]; 
             out_valid_reg <= 1;      
@@ -160,6 +161,7 @@ module ReservationStation(input clk,
             out_val2_reg <= val2[2'b00];
         end
         else if (~is_functional_unit_busy & instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
+            instruction_valid[2'b01] <= 0;
             out_instr_index_reg <= instruction_indices[2'b01];
             out_instr_full_reg <= instructions[2'b01]; 
             out_valid_reg <= 1;      
@@ -167,6 +169,7 @@ module ReservationStation(input clk,
             out_val2_reg <= val2[2'b01];
         end
         else if (~is_functional_unit_busy & instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
+            instruction_valid[2'b10] <= 0;
             out_instr_index_reg <= instruction_indices[2'b10];
             out_instr_full_reg <= instructions[2'b10]; 
             out_valid_reg <= 1;      
@@ -174,6 +177,7 @@ module ReservationStation(input clk,
             out_val2_reg <= val2[2'b10];
         end
         else if (~is_functional_unit_busy & instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
+            instruction_valid[2'b11] <= 0;
             out_instr_index_reg <= instruction_indices[2'b11];
             out_instr_full_reg <= instructions[2'b11]; 
             out_valid_reg <= 1;      
