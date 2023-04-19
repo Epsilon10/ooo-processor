@@ -113,8 +113,7 @@ module ReservationStation(input clk,
         is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
 
         // update any operands which aren't ready if common data bus has value  
-        integer i;
-        for(i = 0; i < 4; i = i + 1) begin
+        for(integer i = 0; i < 4; i = i + 1) begin
             if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
                 val1[i] <= cdb_result[0];
                 op1_valid[i] <= 1;
