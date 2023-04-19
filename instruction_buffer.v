@@ -45,7 +45,9 @@ output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_ow
 
 // branch unit
 output out_branch_instr_valid, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
-output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner
+output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner,
+
+output out_rob_valid [0:3], output [3:0] out_rob_rt [0:3]
 );
 
 reg [3:0] ib_a_owner[0:3];
@@ -59,6 +61,8 @@ wire [15:0] ib_b_value[0:3];
 wire ib_a_valid[0:3];
 wire ib_b_valid[0:3];
 
+reg ib_valid;
+
 always @(posedge clk) begin 
     integer i;
     for (i = 0; i < if_num_inbound; i++) begin
@@ -66,7 +70,7 @@ always @(posedge clk) begin
         ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : rb_owner[i+1];
         ib_opcode[i] <= opcode[i];
     end
-
+    ib_valid <= if_valid;
 end
 
 assign ib_a_valid[0] = ~op_a_local_dep[0] & (rob_output_valid[ib_a_owner[0]] | ~ra_busy[0]);
@@ -152,5 +156,13 @@ assign out_branch_a_value = ib_a_value[branch_instr];
 assign out_branch_b_valid = ib_b_valid[branch_instr];
 assign out_branch_b_owner = ib_b_owner[branch_instr];
 assign out_branch_b_value = ib_b_value[branch_instr];
+
+wire rob_valid [0:3];
+assign out_rob_rt = rt;
+
+assign rob_valid[0] = ~stall_0;
+assign rob_valid[1] = ~stall_0 & ~stall_1;
+assign rob_valid[2] = ~stall_0 & ~stall_1 & ~stall_2;
+assign rob_valid[3] = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
 endmodule

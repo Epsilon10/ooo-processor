@@ -11,7 +11,7 @@ input [15:0] instr[0:3],
 input [3:0]rob_head_idx,
 
 // num available slots in instruction buffer
-input num_fetch,
+input [2:0]num_fetch,
 
 // whats fed into icache
 output [15:0] pc_to_icache[0:3],
@@ -28,9 +28,12 @@ output is_fxu_out[0:3],
 output is_branch_out[0:3],
 
 // for register file
-output [3:0] ra_out[0:3], output [3:0] rb_out[0:3]
+output [3:0] ra_out[0:3], output [3:0] rb_out[0:3],
+output if_valid_out
 );
     reg started = 0;
+    reg if_valid = 1;
+    assign if_valid_out = if_valid;
 
     reg [15:0] m_pc_to_icache[0:3];
     assign pc_to_icache = m_pc_to_icache;
