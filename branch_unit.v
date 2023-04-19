@@ -16,16 +16,16 @@ output out_valid, output [3:0] rob_index, output [15:0] branch_target, output br
 
     wire isJz = opcode == 4'b1000;
     wire isJnz = opcode == 4'b1001;
-    wire isJgt = opcode == 4'b1010;
-    wire isJlt = opcode == 4'b1011;
+    wire isJs = opcode == 4'b1010;
+    wire isJns = opcode == 4'b1011;
 
     assign out_valid = m_valid;
 
     assign branch_taken = 
     isJz ? va == 0 : 
     isJnz ? va != 0 :
-    isJgt ? va > vb :
-    isJlt ? va < vb : 
+    isJs ? va[0] == 1 :
+    isJns ? va[0] != 1 : 
     0;
 
 endmodule
