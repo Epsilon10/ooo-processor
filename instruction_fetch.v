@@ -205,4 +205,11 @@ output if_valid_out
     assign is_fxu_out = is_fxu;
     assign is_branch_out = is_branch;
 
+    wire uses_rb[0:3];
+    assign uses_rb[0] = d_opcode[0] == 0 | d_opcode[0] == 1 | d_opcode[0] == 8 | d_opcode[0] == 9 | d_opcode[0] == 10  |  d_opcode[0] == 11;
+    assign uses_rb[1] = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 8 | d_opcode[1] == 9 | d_opcode[1] == 10  |  d_opcode[1] == 11;
+    assign uses_rb[2] = d_opcode[2] == 0 | d_opcode[2] == 1 | d_opcode[2] == 8 | d_opcode[2] == 9 | d_opcode[2] == 10  |  d_opcode[2] == 11;
+    assign uses_rb[3] = d_opcode[3] == 0 | d_opcode[3] == 1 | d_opcode[3] == 8 | d_opcode[3] == 9 | d_opcode[3] == 10  |  d_opcode[3] == 11;
+
+    assign uses_rb_out = uses_rb;
 endmodule

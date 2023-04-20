@@ -2,16 +2,17 @@
 
 module ReservationStation(input clk, 
     input wen, 
-    input [3:0]instr_index, input [15:0]instr_full, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
-    output [3:0]out_instr_index, output [15:0]out_instr_full, output out_valid,
-    output [15:0]out_val1, output [15:0]out_val2, output write_failed, output is_full,
+    input [3:0]instr_index, input [3:0]instr_opcode, input [7:0]instr_i, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
+    output [3:0]out_instr_index, output [3:0]out_opcode, output [7:0]out_i, output out_valid,
+    output [15:0]out_val1, output [15:0]out_val2, output is_full,
     // common data bus input
     input cdb_valid[0:3], input [3:0]cdb_rob_index [0:3], input [15:0] cdb_result [0:3]
     );
     // if the instruction only has one operand, pass in a value for the second one and set is_val_op2 to true
 
     reg [15:0]instruction_indices[3:0]; // holds instruction address in ROB
-    reg [15:0]instructions[3:0]; // holds 16-bit full instruction
+    reg [3:0]instr_opcodes[3:0]; // holds 4-bit instruction opcodes
+    reg [7:0]instr_i_values[3:0];     // holds immediate value for 
     reg instruction_valid[3:0];  // does this row actually represent an instruction or is it empty?
     reg [3:0]op1[3:0];   // store owner of operand 1 register
     reg op1_valid[3:0];  // set to true once op1 resolves to a value
@@ -22,29 +23,32 @@ module ReservationStation(input clk,
 
     // output an instruction that is ready if stage 1 of the functional unit isn't busy (which it never is because it's pipelined)
     reg [3:0] out_instr_index_reg; // instruction address in ROB
-    reg [15:0]out_instr_full_reg; // the instruction itself
+    reg [3:0] out_opcode_reg; // the instruction itself
+    reg [7:0] out_i_reg;      // immediate value if needed
     reg       out_valid_reg;            // is this an actual output
     reg [15:0]out_val1_reg;       // resolved value of operand 1
     reg [15:0]out_val2_reg;       // resolved value of operand 2
 
     // is reservation station full when trying to write versus in general
-    reg write_failed_reg = 0;
     reg is_full_reg = 0;
 
     assign out_instr_index = out_instr_index_reg;
-    assign out_instr_full = out_instr_full_reg;
+    assign out_opcode = out_opcode_reg;
+    assign out_i = out_i_reg;
     assign out_valid = out_valid_reg;
     assign out_val1 = out_val1_reg;
     assign out_val2 = out_val2_reg;
     
-    assign write_failed = write_failed_reg;
     assign is_full = is_full_reg;
+
+    integer i;
 
     always @(posedge clk) begin
         // write an instruction to a free spot in the reservation station
         if (wen & ~instruction_valid[2'b00]) begin
             instruction_valid[2'b00] <= 1;
-            instructions[2'b00] <= instr_full;
+            instr_opcodes[2'b00] <= instr_opcode;
+            instr_i_values[2'b00] <= instr_i;
             instruction_indices[2'b00] <= instr_index;
 
             op1[2'b00] <= in_op1;
@@ -55,12 +59,11 @@ module ReservationStation(input clk,
 
             op1_valid[2'b00] <= is_val_op1;
             op2_valid[2'b00] <= is_val_op2;
-
-            write_failed_reg <= 0;
         end
         else if (wen & ~instruction_valid[2'b01]) begin
             instruction_valid[2'b01] <= 1;
-            instructions[2'b01] <= instr_full;
+            instr_opcodes[2'b01] <= instr_opcode;
+            instr_i_values[2'b01] <= instr_i;
             instruction_indices[2'b01] <= instr_index;
 
             op1[2'b01] <= in_op1;
@@ -71,12 +74,11 @@ module ReservationStation(input clk,
 
             op1_valid[2'b01] <= is_val_op1;
             op2_valid[2'b01] <= is_val_op2;
-
-            write_failed_reg <= 0;
         end
         else if (wen & ~instruction_valid[2'b10]) begin
             instruction_valid[2'b10] <= 1;
-            instructions[2'b10] <= instr_full;
+            instr_opcodes[2'b10] <= instr_opcode;
+            instr_i_values[2'b10] <= instr_i;
             instruction_indices[2'b10] <= instr_index;
 
             op1[2'b10] <= in_op1;
@@ -87,12 +89,11 @@ module ReservationStation(input clk,
 
             op1_valid[2'b10] <= is_val_op1;
             op2_valid[2'b10] <= is_val_op2;
-
-            write_failed_reg <= 0;
         end
         else if (wen & ~instruction_valid[2'b11]) begin
             instruction_valid[2'b11] <= 1;
-            instructions[2'b11] <= instr_full;
+            instr_opcodes[2'b11] <= instr_opcode;
+            instr_i_values[2'b11] <= instr_i;
             instruction_indices[2'b11] <= instr_index;
 
             op1[2'b11] <= in_op1;
@@ -103,17 +104,12 @@ module ReservationStation(input clk,
 
             op1_valid[2'b11] <= is_val_op1;
             op2_valid[2'b11] <= is_val_op2;
-
-            write_failed_reg <= 0;
-        end
-        else if (wen) begin
-            write_failed_reg <= 1;
         end
 
         is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
 
         // update any operands which aren't ready if common data bus has value  
-        for(integer i = 0; i < 4; i = i + 1) begin
+        for(i = 0; i < 4; i = i + 1) begin
             if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
                 val1[i] <= cdb_result[0];
                 op1_valid[i] <= 1;
@@ -155,7 +151,8 @@ module ReservationStation(input clk,
         if (instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
             instruction_valid[2'b00] <= 0;
             out_instr_index_reg <= instruction_indices[2'b00];
-            out_instr_full_reg <= instructions[2'b00]; 
+            out_opcode_reg <= instr_opcodes[2'b00]; 
+            out_i_reg <= instr_i_values[2'b00];
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b00];       
             out_val2_reg <= val2[2'b00];
@@ -163,7 +160,8 @@ module ReservationStation(input clk,
         else if (instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
             instruction_valid[2'b01] <= 0;
             out_instr_index_reg <= instruction_indices[2'b01];
-            out_instr_full_reg <= instructions[2'b01]; 
+            out_opcode_reg <= instr_opcodes[2'b01]; 
+            out_i_reg <= instr_i_values[2'b01];
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b01];       
             out_val2_reg <= val2[2'b01];
@@ -171,7 +169,8 @@ module ReservationStation(input clk,
         else if (instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
             instruction_valid[2'b10] <= 0;
             out_instr_index_reg <= instruction_indices[2'b10];
-            out_instr_full_reg <= instructions[2'b10]; 
+            out_opcode_reg <= instr_opcodes[2'b10]; 
+            out_i_reg <= instr_i_values[2'b10];
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b10];       
             out_val2_reg <= val2[2'b10];
@@ -179,7 +178,8 @@ module ReservationStation(input clk,
         else if (instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
             instruction_valid[2'b11] <= 0;
             out_instr_index_reg <= instruction_indices[2'b11];
-            out_instr_full_reg <= instructions[2'b11]; 
+            out_opcode_reg <= instr_opcodes[2'b11]; 
+            out_i_reg <= instr_i_values[2'b11];
             out_valid_reg <= 1;      
             out_val1_reg <= val1[2'b11];       
             out_val2_reg <= val2[2'b11];

@@ -5,7 +5,6 @@ module InstructionBuffer
 (input clk,
 // from instruction fetch unit
 input if_valid, // instruction fetch valid
-input if_num_inbound, // number of instructions coming from fetch unit
 
 input [3:0] opcode[0:3], 
 input op_a_local_dep[0:3], output [3:0] op_a_owner[0:3],
@@ -22,7 +21,7 @@ input [15:0] ra_value[0:3], input ra_busy[0:3], input [3:0] ra_owner[0:3],
 input [15:0] rb_value[0:3], input rb_busy[0:3], input [3:0] rb_owner[0:3],
 
 // rob input
-input rob_output_valid[0:15], input [15:0] rob_output_values[0:15],
+input rob_head_idx, input rob_output_valid[0:15], input [15:0] rob_output_values[0:15], 
 
 // functional unit status'
 input fxu_0_full, input fxu_1_full, input lsu_full, input branch_full,
@@ -31,21 +30,20 @@ input fxu_0_full, input fxu_1_full, input lsu_full, input branch_full,
 output [2:0] num_fetch,
 
 // fxu 0
-output out_fxu_0_instr_valid, output out_fxu_0_a_valid, output [15:0] out_fxu_0_a_value, output [3:0] out_fxu_0_a_owner, 
-output out_fxu_0_b_valid, output [15:0] out_fxu_0_b_value, output [3:0] out_fxu_0_b_owner, 
-output [3:0] out_rt,
+output out_fxu_0_instr_valid, output [3:0] out_fxu_0_rob_idx, output out_fxu_0_a_valid, output [15:0] out_fxu_0_a_value, output [3:0] out_fxu_0_a_owner, 
+output out_fxu_0_b_valid, output [15:0] out_fxu_0_b_value, output [3:0] out_fxu_0_b_owner, output [3:0] out_fxu_0_opcode, output [7:0] out_fxu_0_i,
 
 // fxu 1
-output out_fxu_1_instr_valid, output out_fxu_1_a_valid, output [15:0] out_fxu_1_a_value, output [3:0] out_fxu_1_a_owner, 
-output out_fxu_1_b_valid, output [15:0] out_fxu_1_b_value, output [3:0] out_fxu_1_b_owner, 
+output out_fxu_1_instr_valid, output [3:0] out_fxu_1_rob_idx, output out_fxu_1_a_valid, output [15:0] out_fxu_1_a_value, output [3:0] out_fxu_1_a_owner, 
+output out_fxu_1_b_valid, output [15:0] out_fxu_1_b_value, output [3:0] out_fxu_1_b_owner, output [3:0] out_fxu_1_opcode, output [7:0] out_fxu_1_i,
 
 // lsu
-output out_lsu_instr_valid,output out_lsu_a_valid, output [15:0] out_lsu_a_value, output [3:0] out_lsu_a_owner, 
-output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_owner, 
+output out_lsu_instr_valid, output [3:0] out_lsu_rob_idx,output out_lsu_a_valid, output [15:0] out_lsu_a_value, output [3:0] out_lsu_a_owner, 
+output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_owner, output [3:0] out_lsu_opcode,
 
 // branch unit
-output out_branch_instr_valid, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
-output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner,
+output out_branch_instr_valid, output [3:0] out_branch_rob_idx, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
+output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner, output [3:0] out_branch_opcode,
 
 output out_rob_valid [0:3], output [3:0] out_rob_rt [0:3]
 );
@@ -61,16 +59,19 @@ wire [15:0] ib_b_value[0:3];
 wire ib_a_valid[0:3];
 wire ib_b_valid[0:3];
 
+reg [2:0] m_num_fetch = 0;
+
 reg ib_valid;
 
 always @(posedge clk) begin 
     integer i;
-    for (i = 0; i < if_num_inbound; i++) begin
+    for (i = 0; i < m_num_fetch; i++) begin
         ib_a_owner[i] <= op_a_local_dep[i] ? op_a_owner[i] : ra_owner[i];
         ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : rb_owner[i+1];
         ib_opcode[i] <= opcode[i];
     end
     ib_valid <= if_valid;
+    m_num_fetch <= m_num_fetch_wire;
 end
 
 assign ib_a_valid[0] = ~op_a_local_dep[0] & (rob_output_valid[ib_a_owner[0]] | ~ra_busy[0]);
@@ -118,7 +119,7 @@ wire stall_2 = (is_fxu[2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[2] & ~i2_branc
 wire stall_3 = (is_fxu[3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[3] & ~i3_branch);
 wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
-wire m_num_fetch = stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))));
+wire m_num_fetch_wire = stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))));
 
 wire fxu_0_instr = i0_fxu_0 ? 0 : (i1_fxu_0 ? 1 : (i2_fxu_0 ? 2 : (i3_fxu_0 ? 3 : `NULL)));
 wire fxu_1_instr = i0_fxu_1 ? 0 : (i1_fxu_1 ? 1 : (i2_fxu_1 ? 2 : (i3_fxu_1 ? 3 : `NULL)));
@@ -129,6 +130,10 @@ wire fxu_1_valid = fxu_1_instr != `NULL;
 wire branch_valid = branch_instr != `NULL;
 
 assign out_fxu_0_instr_valid = fxu_0_valid;
+assign out_fxu_0_rob_idx = rob_head_idx + fxu_0_instr;
+assign out_fxu_0_opcode = opcode[fxu_0_instr];
+assign out_fxu_0_i = fxu_0_instr[11:4]; // sketchy
+
 assign out_fxu_0_a_valid = ib_a_valid[fxu_0_instr];
 assign out_fxu_0_a_owner = ib_a_owner[fxu_0_instr];
 assign out_fxu_0_a_value = ib_a_value[fxu_0_instr];
@@ -138,6 +143,9 @@ assign out_fxu_0_b_owner = ib_b_owner[fxu_0_instr];
 assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 
 assign out_fxu_1_instr_valid = fxu_1_valid;
+assign out_fxu_1_rob_idx = rob_head_idx + fxu_1_instr;
+assign out_fxu_1_opcode = opcode[fxu_1_instr];
+assign out_fxu_1_i = fxu_1_instr[11:4]; // sketchy
 
 assign out_fxu_1_a_valid = ib_a_valid[fxu_1_instr];
 assign out_fxu_1_a_owner = ib_a_owner[fxu_1_instr];
@@ -148,6 +156,8 @@ assign out_fxu_1_b_owner = ib_b_owner[fxu_1_instr];
 assign out_fxu_1_b_value = ib_b_value[fxu_1_instr];
 
 assign out_branch_instr_valid = branch_valid;
+assign out_branch_rob_idx = rob_head_idx + branch_instr;
+assign out_branch_opcode = opcode[branch_instr];
 
 assign out_branch_a_valid = ib_a_valid[branch_instr];
 assign out_branch_a_owner = ib_a_owner[branch_instr];
@@ -164,5 +174,6 @@ assign rob_valid[0] = ~stall_0;
 assign rob_valid[1] = ~stall_0 & ~stall_1;
 assign rob_valid[2] = ~stall_0 & ~stall_1 & ~stall_2;
 assign rob_valid[3] = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
+
 
 endmodule

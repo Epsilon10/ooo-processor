@@ -10,7 +10,15 @@ module Main;
     wire clk;
     Clock c0(clk);
 
-    reg [15:0] pc_array[0:3] = {16'h0000, 16'h0002, 16'h0004, 16'h0006};
+    wire [15:0] pc_array[0:3];
+    
+    initial begin
+        assign pc_array[0] = 0;
+        assign pc_array[1] = 2;
+        assign pc_array[2] = 4;
+        assign pc_array[3] = 6;
+    end
+
     wire [15:0] instructions[0:3];
 
     InstructionCache iCache
@@ -21,8 +29,8 @@ module Main;
     wire [3:0] rob_head;
 
     // comes from branch unit
-    wire [15:0] branch_target;
-    wire is_branch;
+    wire [15:0] branch_target = 0;
+    wire is_branch = 0;
 
     // go to instruction buffer
     wire [3:0] opcode_out[0:3];
@@ -32,12 +40,18 @@ module Main;
     wire [3:0] op_b_owner_out[0:3];
     wire [3:0] rt_out[0:3];
 
+    wire uses_rb_out[0:3];
+    wire is_ld_str_out[0:3];
+    wire is_fxu_out[0:3];
+    wire is_branch_out[0:3];
+
     // comes from instruction buffer
-    wire num_slots; // PROBLEM!!!!!!!
+    wire [2:0] num_slots; 
 
     // go to register file
     wire [3:0] ra_out[0:3];
     wire [3:0] rb_out[0:3];
+    wire if_valid_out;
 
     InstructionFetch iFetcher
     (clk,
@@ -57,11 +71,13 @@ module Main;
     op_b_local_dep_out, op_b_owner_out,
     rt_out,
 
-    ra_out, rb_out);
+    uses_rb_out,
+    is_ld_str_out,
+    is_fxu_out,
+    is_branch_out,
 
-    // come from instruction fetcher
-    wire instructions_valid; // PROBLEM!!!!!!!
-    wire uses_rb; // PROBLEM!!!!!!!
+    ra_out, rb_out,
+    if_valid_out);
 
     // come from register file
     wire [15:0] ra_value[0:3]; 
@@ -76,56 +92,117 @@ module Main;
     wire [15:0] rob_output_values[0:15];
 
     // come from functional units
-    wire fxu_0_full; // PROBLEM!!!!!!!
-    wire fxu_1_full; // PROBLEM!!!!!!!
-    wire lsu_full; // PROBLEM!!!!!!!
-    wire branch_full; // PROBLEM!!!!!!!
+    wire fxu_0_full;
+    wire fxu_1_full;
+    wire lsu_full;
+    wire branch_full;
 
     // go to reservation stations
-    wire out_a_valid [0:3];
-    wire [15:0] out_a_value [0:3];
-    wire [3:0] out_a_owner [0:3];
+    wire out_fxu_0_instr_valid;
+    wire [3:0] out_fxu_0_rob_idx;
+    wire out_fxu_0_a_valid;
+    wire [15:0] out_fxu_0_a_value;
+    wire [3:0] out_fxu_0_a_owner;
     
-    wire out_b_valid [0:3];
-    wire [15:0] out_b_value [0:3];
-    wire [3:0] out_b_owner [0:3];
+    wire out_fxu_0_b_valid;
+    wire [15:0] out_fxu_0_b_value;
+    wire [3:0] out_fxu_0_b_owner;
     
-    wire [3:0] out_rt [0:3];
-    wire [3:0] opcode [0:3];
+    wire [3:0] out_fxu_0_opcode;
+    wire [7:0] out_fxu_0_i;
+    
+    // fxu 1
+    wire out_fxu_1_instr_valid;
+    wire [3:0] out_fxu_1_rob_idx;
+    wire out_fxu_1_a_valid;
+    wire [15:0] out_fxu_1_a_value;
+    wire [3:0] out_fxu_1_a_owner;
+    
+    wire out_fxu_1_b_valid;
+    wire [3:0] out_branch_rob_idx;
+    wire [15:0] out_fxu_1_b_value;
+    wire [3:0] out_fxu_1_b_owner;
+
+    wire [3:0] out_fxu_1_opcode;
+    wire [7:0] out_fxu_1_i;
+
+    
+    // lsu
+    wire out_lsu_instr_valid;
+    wire [3:0] out_lsu_rob_idx;
+
+    wire out_lsu_a_valid;
+    wire [15:0] out_lsu_a_value;
+    wire [3:0] out_lsu_a_owner;
+    
+    wire out_lsu_b_valid;
+    wire [15:0] out_lsu_b_value;
+    wire [3:0] out_lsu_b_owner;
+
+    wire [3:0] out_lsu_opcode;
+    
+    // branch unit
+    wire out_branch_instr_valid;
+    wire out_branch_a_valid;
+    wire [15:0] out_branch_a_value;
+    wire [3:0] out_branch_a_owner;
+    
+    wire out_branch_b_valid;
+    wire [15:0] out_branch_b_value;
+    wire [3:0] out_branch_b_owner;
+
+    wire [3:0] out_branch_opcode;
+    
+    wire out_rob_valid [0:3];
+    wire [3:0] out_rob_rt [0:3];
+
+    
     
     InstructionBuffer iBuffer
     (clk,
 
-    instructions_valid,
+    if_valid_out,
 
     opcode_out, 
     op_a_local_dep_out, op_a_owner_out,
     op_b_local_dep_out, op_b_owner_out,
+    
     rt_out,
-    uses_rb,
+    uses_rb_out,
+    is_ld_str_out,
+    is_fxu_out,
+    is_branch_out,
 
     ra_value, ra_busy, ra_owner,
     rb_value, rb_busy, rb_owner,
 
-    rob_output_valid, rob_output_values,
+    rob_head, rob_output_valid, rob_output_values,
 
     fxu_0_full, fxu_1_full, lsu_full, branch_full,
 
-    out_a_valid, out_a_value, out_a_owner, 
-    out_b_valid, out_b_value, out_b_owner, 
-    out_rt, opcode);
+    num_slots,
 
-    // comes from instruction buffer
-    wire always_valid[0:3]; // PROBLEM!!!!!!!
+    out_fxu_0_instr_valid, out_fxu_0_rob_idx, out_fxu_0_a_valid, out_fxu_0_a_value, out_fxu_0_a_owner, 
+    out_fxu_0_b_valid, out_fxu_0_b_value, out_fxu_0_b_owner, out_fxu_0_opcode, out_fxu_0_i,
+
+    // fxu 1
+    out_fxu_1_instr_valid,out_fxu_1_rob_idx, out_fxu_1_a_valid, out_fxu_1_a_value, out_fxu_1_a_owner, 
+    out_fxu_1_b_valid, out_fxu_1_b_value, out_fxu_1_b_owner, out_fxu_1_opcode, out_fxu_1_i,
+
+    // lsu
+    out_lsu_instr_valid,out_lsu_rob_idx, out_lsu_a_valid, out_lsu_a_value, out_lsu_a_owner, 
+    out_lsu_b_valid, out_lsu_b_value, out_lsu_b_owner, out_lsu_opcode,
+
+    // branch unit
+    out_branch_instr_valid, out_branch_rob_idx, out_branch_a_valid, out_branch_a_value, out_branch_a_owner, 
+    out_branch_b_valid, out_branch_b_value, out_branch_b_owner,out_branch_opcode,
+
+    out_rob_valid, out_rob_rt);
 
     // come from functional units/common data bus
     wire cdb_valid[0:3];
     wire [3:0] indices[0:3];
     wire [15:0] new_values[0:3];
-
-    // should go to instruction fetcher?
-    wire out_finished[0:15]; // PROBLEM!!!!!!!
-    wire [15:0] out_values[0:15]; // PROBLEM!!!!!!!
 
     // go to register file
     wire register_write_enable[0:3];
@@ -139,15 +216,15 @@ module Main;
     ROB rob
     (clk,
 
-    always_valid, 
+    out_rob_valid,
     out_rt,
 
     cdb_valid,
     indices,
     new_values,
 
-    out_finished,
-    out_values,
+    rob_output_valid,
+    rob_output_values,
 
     register_write_enable,
     register_targets,
@@ -155,6 +232,54 @@ module Main;
     register_writers,
 
     size,
-    head);
+    rob_head);
+
+    wire [3:0]res_fxu0_out_instr_index;
+    wire [3:0]res_fxu0_out_opcode;
+    wire [7:0]res_fxu0_out_i;
+    wire res_fxu0_out_valid;
+    wire [15:0]res_fxu0_op1_value;
+    wire [15:0]res_fxu0_op2_value;
+
+    // last 3 inputs to fxu reservation station
+    // concatenate the CDB outputs from all functional units
+    // input cdb_valid[0:3], input [3:0]cdb_rob_index[0:3], input [15:0]cdb_result[0:3]
+
+    ReservationStation fxu0_reservationstation 
+    (clk, 
+    out_fxu_0_instr_valid, 
+    out_fxu_0_rob_idx, out_fxu_0_opcode, out_fxu_0_i, out_fxu_0_a_owner, out_fxu_0_b_owner, out_fxu_0_a_value, out_fxu_0_b_value, out_fxu_0_a_valid, out_fxu_0_b_valid,
+    res_fxu0_out_instr_index, res_fxu0_out_opcode, res_fxu0_out_i, res_fxu0_out_valid,
+    res_fxu0_op1_value, res_fxu0_op2_value, fxu_0_full,
+    // common data bus input
+    cdb_valid, indices, new_values);
+
+
+    FXU fxu0
+    (clk,
+    res_fxu0_out_opcode, res_fxu0_out_instr_index, res_fxu0_out_valid,
+    res_fxu0_op1_value, res_fxu0_op2_value, res_fxu0_out_i, 
+    cdb_valid[0], indices[0], new_values[0]
+    );
+
+
+    RegisterFile register_file
+    (clk, 
+    ra_out, 
+    ra_value, 
+    ra_busy, 
+    ra_owner,
+
+    // READ PORT 2 for instruciton fetcher
+    rb_out,
+    rb_value, 
+    rb_busy, 
+    rb_owner,
+
+    // WRITE PORT
+    register_write_enable,
+    register_targets,
+    register_write_data,
+    register_writers);
 
 endmodule
