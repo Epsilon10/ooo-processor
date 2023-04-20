@@ -61,12 +61,6 @@ output if_valid_out
         for (n=0; n<4; n=n+1) assign is_branch_out_flat [1*n+0:1*n] = is_branch[3-n];
     endgenerate
 
-
-
-
-
-
-
     reg started = 0;
     reg if_valid = 1;
     assign if_valid_out = if_valid;
@@ -77,17 +71,17 @@ output if_valid_out
 
     initial begin 
         integer p;
-        for(p = 0; p < num_fetch; p++) begin 
-            m_pc_to_icache[p] = 0;
+        for(p = 0; p < 4; p++) begin 
+            m_pc_to_icache[p] = 2*p;
         end
 
-        last_pc = 0;
+        last_pc = 6;
     end
 
     always @(posedge clk) begin 
         integer i;
         
-        for (i = 0; i < num_fetch; i++) begin
+        for (i = 0; i < 4; i++) begin
             m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : (~started ? last_pc + 2*i : last_pc + 2*(i+1));
         end
     end
@@ -95,7 +89,7 @@ output if_valid_out
     always @(negedge clk) begin
         started <= 1;
         if (num_fetch > 0)
-            last_pc <= m_pc_to_icache[num_fetch - 1];
+            last_pc <= m_pc_to_icache[3];
     end
 
     reg d_valid = 0;
@@ -110,6 +104,11 @@ output if_valid_out
     end
 
     wire [3:0] d_opcode[0:3];
+
+    wire [3:0] d_opcode_0 = d_opcode[0];
+    wire [3:0] d_opcode_1 = d_opcode[1];
+    wire [3:0] d_opcode_2 = d_opcode[2];
+    wire [3:0] d_opcode_3 = d_opcode[3];
 
     assign d_opcode[0] = d_instr[0][15:12];
     assign d_opcode[1] = d_instr[1][15:12];

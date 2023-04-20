@@ -15,11 +15,16 @@ output [63:0] read_data_value_2_flat,
 output [3:0]  read_data_busy_2_flat , 
 output [15:0] read_data_owner_2_flat,
 
-// WRITE PORT
+// WRITE PORT 1
 input [3:0]retirement_write_data_enable_flat, 
 input [15:0]retirement_target_reg_flat, 
 input [63:0]retirement_write_data_flat, 
-input [15:0]instruction_writer_flat
+input [15:0]instruction_writer_flat,
+
+// WRITE PORT 2 (for instruction buffer)
+input [3:0] rt_update_enable_flat,
+input [15:0] rt_target_reg_flat,
+input [15:0] rt_owner_flat
 );
 
 
@@ -31,6 +36,10 @@ input [15:0]instruction_writer_flat
     wire [15:0]retirement_write_data[0:3];
     wire [3:0]instruction_writer[0:3];
 
+    wire rt_update_enable[0:3];
+    wire [3:0] rt_target_reg[0:3];
+    wire [3:0] rt_owner[0:3];
+
     // unflatten input wires
     generate
         for (n=0;n<4;n=n+1) assign instr_buffer_read_addr[3-n] = instr_buffer_read_addr_flat[4*n+3:4*n];
@@ -39,6 +48,11 @@ input [15:0]instruction_writer_flat
         for (n=0;n<4;n=n+1) assign retirement_target_reg[3-n] = retirement_target_reg_flat[4*n+3:4*n];
         for (n=0;n<4;n=n+1) assign retirement_write_data[3-n] = retirement_write_data_flat[16*n+15:16*n];
         for (n=0;n<4;n=n+1) assign instruction_writer[3-n] = instruction_writer_flat[4*n+3:4*n];
+
+        for (n=0;n<4;n=n+1) assign rt_update_enable[3-n] = rt_update_enable_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign rt_target_reg[3-n] = rt_target_reg_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign rt_owner[3-n] = rt_owner_flat[4*n+3:4*n];
+
     endgenerate
 
     // flatten into output wires from all output regs
@@ -67,6 +81,13 @@ input [15:0]instruction_writer_flat
     reg m_read_data_busy_2[0:3];
     reg [3:0] m_read_data_owner_2[0:3];
 
+    initial begin
+        integer i;
+        for (i = 0; i < 16; i++) begin
+            m_read_data_busy[i] = 0;
+        end
+    end
+
     always @(posedge clk) begin
         integer i;
 
@@ -89,6 +110,7 @@ input [15:0]instruction_writer_flat
             if (retirement_write_data_enable[i]) begin
                 values[retirement_target_reg[i]] <= retirement_write_data[i];
 
+                // TODO: make sure commit does not overwrite register file busy!!!!
                 if (m_read_data_owner[retirement_target_reg[i]] == instruction_writer[i]) begin 
                     m_read_data_busy[retirement_target_reg[i]] <= 0;
                 end

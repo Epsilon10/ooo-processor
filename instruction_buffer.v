@@ -1,5 +1,5 @@
 `timescale 1ps/1ps
-`define NULL 10
+`define NULL 7
 
 module InstructionBuffer
 (input clk,
@@ -45,7 +45,9 @@ output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_ow
 output out_branch_instr_valid, output [3:0] out_branch_rob_idx, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
 output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner, output [3:0] out_branch_opcode,
 
-output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat
+output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat,
+
+output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15:0] rt_owner_flat
 );
     
     genvar n;
@@ -107,13 +109,12 @@ output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat
     generate
         for (n=0; n<4; n=n+1) assign out_rob_valid_flat [1*n+0:1*n] = rob_valid[3-n];
         for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = rt[3-n];
+
+        for (n=0; n<4; n=n+1) assign rt_update_enable_flat[1*n+0:1*n] = rt_update_enable[3-n];
+        for (n=0; n<4; n=n+1) assign rt_target_reg_flat[4*n+3:4*n] = rt_target_reg[3-n];
+        for (n=0; n<4; n=n+1) assign rt_owner_flat[4*n+3:4*n] = rt_owner[3-n];
+
     endgenerate
-
-
-
-
-
-
 
 reg [3:0] ib_a_owner[0:3];
 reg [3:0] ib_b_owner[0:3];
@@ -188,9 +189,9 @@ wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
 wire m_num_fetch_wire = stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))));
 
-wire fxu_0_instr = i0_fxu_0 ? 0 : (i1_fxu_0 ? 1 : (i2_fxu_0 ? 2 : (i3_fxu_0 ? 3 : `NULL)));
-wire fxu_1_instr = i0_fxu_1 ? 0 : (i1_fxu_1 ? 1 : (i2_fxu_1 ? 2 : (i3_fxu_1 ? 3 : `NULL)));
-wire branch_instr = i0_branch ? 0 : (i1_branch ? 1 : (i2_branch ? 2 : (i3_branch ? 3 : `NULL)));
+wire [2:0]fxu_0_instr = i0_fxu_0 ? 0 : (i1_fxu_0 ? 1 : (i2_fxu_0 ? 2 : (i3_fxu_0 ? 3 : `NULL)));
+wire [2:0]fxu_1_instr = i0_fxu_1 ? 0 : (i1_fxu_1 ? 1 : (i2_fxu_1 ? 2 : (i3_fxu_1 ? 3 : `NULL)));
+wire [2:0]branch_instr = i0_branch ? 0 : (i1_branch ? 1 : (i2_branch ? 2 : (i3_branch ? 3 : `NULL)));
 
 wire fxu_0_valid = fxu_0_instr != `NULL;
 wire fxu_1_valid = fxu_1_instr != `NULL;
@@ -241,5 +242,30 @@ assign rob_valid[1] = ~stall_0 & ~stall_1;
 assign rob_valid[2] = ~stall_0 & ~stall_1 & ~stall_2;
 assign rob_valid[3] = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
+wire i3_writes_to_reg = opcode[3] == 0 | opcode[3] == 1 | opcode[3] == 2 | opcode[3] == 4 | opcode[3] == 5 | opcode[3] == 6;
+wire i2_writes_to_reg = opcode[2] == 0 | opcode[2] == 1 | opcode[2] == 2 | opcode[2] == 4 | opcode[2] == 5 | opcode[2] == 6;
+wire i1_writes_to_reg = opcode[1] == 0 | opcode[1] == 1 | opcode[1] == 2 | opcode[1] == 4 | opcode[1] == 5 | opcode[1] == 6;
+wire i0_writes_to_reg = opcode[0] == 0 | opcode[0] == 1 | opcode[0] == 2 | opcode[0] == 4 | opcode[0] == 5 | opcode[0] == 6;
+
+wire rt_update_enable [0:3];
+wire [3:0] rt_target_reg[0:3];
+wire [3:0] rt_owner[0:3];
+
+// TODO: unflatten
+
+assign rt_update_enable[3] = 1 & i3_writes_to_reg;
+assign rt_update_enable[2] = rt[3] != rt[2] & i2_writes_to_reg;
+assign rt_update_enable[1] = rt[1] != rt[2] & rt[1] != rt[3] & i1_writes_to_reg; 
+assign rt_update_enable[0] = rt[0] != rt[1] & rt[0] != rt[2] & rt[0] != rt[3] & i0_writes_to_reg;
+
+assign rt_target_reg[0] = rt[0];
+assign rt_target_reg[1] = rt[1];
+assign rt_target_reg[2] = rt[2];
+assign rt_target_reg[3] = rt[3];
+
+assign rt_owner[0] = rob_head_idx;
+assign rt_owner[1] = rob_head_idx + 1;
+assign rt_owner[2] = rob_head_idx + 2;
+assign rt_owner[3] = rob_head_idx + 3;
 
 endmodule

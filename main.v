@@ -10,15 +10,16 @@ module Main;
     wire clk;
     Clock c0(clk);
 
-    reg [63:0] pc_array = 64'h0000000200040006;
-
+    wire [63:0] pc_array;
     wire [59:0] pc_array_truncated = {pc_array[63:49], pc_array[47:33], pc_array[31:17], pc_array[15:1]};
 
+
+    /*
+
+
     wire [63:0] pc_array_input;
-    
-    always @(posedge clk) begin 
-        pc_array <= pc_array_input;
-    end
+    */
+    // wire [63:0] pc_array_input;
 
     wire [63:0] instructions;
 
@@ -67,7 +68,7 @@ module Main;
 
     num_slots,
 
-    pc_array_input,
+    pc_array,
 
     opcode_out, immediate_out,
     op_a_local_dep_out, op_a_owner_out,
@@ -159,7 +160,9 @@ module Main;
     wire [3:0]out_rob_valid;
     wire [15:0]out_rob_rt;
 
-    
+    wire [3:0] rt_update_enable_flat;
+    output [15:0] rt_target_reg_flat;
+    output [15:0] rt_owner_flat;
     
     InstructionBuffer iBuffer
     (clk,
@@ -200,7 +203,9 @@ module Main;
     out_branch_instr_valid, out_branch_rob_idx, out_branch_a_valid, out_branch_a_value, out_branch_a_owner, 
     out_branch_b_valid, out_branch_b_value, out_branch_b_owner,out_branch_opcode,
 
-    out_rob_valid, out_rob_rt);
+    out_rob_valid, out_rob_rt,
+    rt_update_enable_flat, rt_target_reg_flat, rt_owner_flat
+    );
 
     // come from functional units/common data bus
     wire [3:0]cdb_valid;
@@ -283,6 +288,10 @@ module Main;
     register_write_enable,
     register_targets,
     register_write_data,
-    register_writers);
+    register_writers,
+    rt_update_enable_flat,
+    rt_target_reg_flat,
+    rt_owner_flat
+    );
 
 endmodule

@@ -26,6 +26,12 @@ module ReservationStation(input clk,
     reg [3:0]instr_opcodes[0:3]; // holds 4-bit instruction opcodes
     reg [7:0]instr_i_values[0:3];     // holds immediate value for 
     reg instruction_valid[0:3];  // does this row actually represent an instruction or is it empty?
+    initial begin
+        instruction_valid[0] = 0;
+        instruction_valid[1] = 0;
+        instruction_valid[2] = 0;
+        instruction_valid[3] = 0;
+    end
     reg [3:0]op1[0:3];   // store owner of operand 1 register
     reg op1_valid[0:3];  // set to true once op1 resolves to a value
     reg [15:0]val1[0:3]; // store resolved value of operand 1
