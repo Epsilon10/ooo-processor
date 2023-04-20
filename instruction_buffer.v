@@ -6,22 +6,22 @@ module InstructionBuffer
 // from instruction fetch unit
 input if_valid, // instruction fetch valid
 
-input [3:0] opcode[0:3], 
-input op_a_local_dep[0:3], output [3:0] op_a_owner[0:3],
-input op_b_local_dep[0:3], output [3:0] op_b_owner[0:3],
+input [15:0] opcode_flat, input [31:0] immediate_flat,
+input [3:0]op_a_local_dep_flat, input [15:0] op_a_owner_flat,
+input [3:0]op_b_local_dep_flat, input [15:0] op_b_owner_flat,
 
-input [3:0] rt[0:3],
-input uses_rb[0:3],
-input is_ld_str[0:3],
-input is_fxu[0:3],
-input is_branch[0:3],
+input [15:0] rt_flat,
+input [3:0]uses_rb_flat,
+input [3:0]is_ld_str_flat,
+input [3:0]is_fxu_flat,
+input [3:0]is_branch_flat,
 
 // from regsiter file
-input [15:0] ra_value[0:3], input ra_busy[0:3], input [3:0] ra_owner[0:3],
-input [15:0] rb_value[0:3], input rb_busy[0:3], input [3:0] rb_owner[0:3],
+input [63:0]ra_value_flat, input [3:0]ra_busy_flat, input [15:0] ra_owner_flat,
+input [63:0]rb_value_flat, input [3:0]rb_busy_flat, input [15:0] rb_owner_flat,
 
 // rob input
-input rob_head_idx, input rob_output_valid[0:15], input [15:0] rob_output_values[0:15], 
+input [3:0]rob_head_idx, input [15:0]rob_output_valid_flat, input [255:0]rob_output_values_flat, 
 
 // functional unit status'
 input fxu_0_full, input fxu_1_full, input lsu_full, input branch_full,
@@ -45,8 +45,75 @@ output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_ow
 output out_branch_instr_valid, output [3:0] out_branch_rob_idx, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
 output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner, output [3:0] out_branch_opcode,
 
-output out_rob_valid [0:3], output [3:0] out_rob_rt [0:3]
+output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat
 );
+    
+    genvar n;
+
+    wire [3:0] opcode[0:3];
+    wire [7:0] immediate[0:3];
+
+    wire op_a_local_dep[0:3]; 
+    wire [3:0] op_a_owner[0:3];
+    wire op_b_local_dep[0:3]; 
+    wire [3:0] op_b_owner[0:3];
+
+    wire [3:0] rt[0:3];
+    wire uses_rb[0:3];
+    wire is_ld_str[0:3];
+    wire is_fxu[0:3];
+    wire is_branch[0:3];
+
+    wire [15:0]ra_value[0:3];
+    wire ra_busy[0:3];
+    wire [3:0] ra_owner[0:3];
+
+    wire [15:0]rb_value[0:3];
+    wire rb_busy[0:3];
+    wire [3:0] rb_owner[0:3];
+
+    wire rob_output_valid[0:15];
+    wire [15:0]rob_output_values[0:15];
+
+    // unflatten input wires
+    generate
+        for (n=0;n<4;n=n+1) assign opcode[3-n] = opcode_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign immediate[3-n] = immediate_flat[8*n+7:8*n];
+
+        for (n=0;n<4;n=n+1) assign op_a_local_dep[3-n] = op_a_local_dep_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign op_a_owner[3-n] = op_a_owner_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign op_b_local_dep[3-n] = op_b_local_dep_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign op_b_owner[3-n] = op_b_owner_flat[4*n+3:4*n];
+
+        for (n=0;n<4;n=n+1) assign rt[3-n] = rt_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign uses_rb[3-n] = uses_rb_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign is_ld_str[3-n] = is_ld_str_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign is_fxu[3-n] = is_fxu_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign is_branch[3-n] = is_branch_flat[1*n+0:1*n];
+
+        for (n=0;n<4;n=n+1) assign ra_value[3-n] = ra_value_flat[16*n+15:16*n];
+        for (n=0;n<4;n=n+1) assign ra_busy[3-n] = ra_busy_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign ra_owner[3-n] = ra_owner_flat[4*n+3:4*n];
+        
+        for (n=0;n<4;n=n+1) assign rb_value[3-n] = rb_value_flat[16*n+15:16*n];
+        for (n=0;n<4;n=n+1) assign rb_busy[3-n] = rb_busy_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign rb_owner[3-n] = rb_owner_flat[4*n+3:4*n];
+        
+        for (n=0;n<16;n=n+1) assign rob_output_valid[15-n] = rob_output_valid_flat[1*n+0:1*n];
+        for (n=0;n<16;n=n+1) assign rob_output_values[15-n] = rob_output_values_flat[16*n+15:16*n];
+    endgenerate
+
+    // flatten into output wires from all output regs
+    generate
+        for (n=0; n<4; n=n+1) assign out_rob_valid_flat [1*n+0:1*n] = rob_valid[3-n];
+        for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = rt[3-n];
+    endgenerate
+
+
+
+
+
+
 
 reg [3:0] ib_a_owner[0:3];
 reg [3:0] ib_b_owner[0:3];
@@ -132,7 +199,7 @@ wire branch_valid = branch_instr != `NULL;
 assign out_fxu_0_instr_valid = fxu_0_valid;
 assign out_fxu_0_rob_idx = rob_head_idx + fxu_0_instr;
 assign out_fxu_0_opcode = opcode[fxu_0_instr];
-assign out_fxu_0_i = fxu_0_instr[11:4]; // sketchy
+assign out_fxu_0_i = immediate[fxu_0_instr];
 
 assign out_fxu_0_a_valid = ib_a_valid[fxu_0_instr];
 assign out_fxu_0_a_owner = ib_a_owner[fxu_0_instr];
@@ -145,7 +212,7 @@ assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 assign out_fxu_1_instr_valid = fxu_1_valid;
 assign out_fxu_1_rob_idx = rob_head_idx + fxu_1_instr;
 assign out_fxu_1_opcode = opcode[fxu_1_instr];
-assign out_fxu_1_i = fxu_1_instr[11:4]; // sketchy
+assign out_fxu_1_i = immediate[fxu_1_instr];
 
 assign out_fxu_1_a_valid = ib_a_valid[fxu_1_instr];
 assign out_fxu_1_a_owner = ib_a_owner[fxu_1_instr];
@@ -168,7 +235,6 @@ assign out_branch_b_owner = ib_b_owner[branch_instr];
 assign out_branch_b_value = ib_b_value[branch_instr];
 
 wire rob_valid [0:3];
-assign out_rob_rt = rt;
 
 assign rob_valid[0] = ~stall_0;
 assign rob_valid[1] = ~stall_0 & ~stall_1;

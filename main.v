@@ -4,26 +4,27 @@ module Main;
 
     initial begin 
         $dumpfile("cpu.vcd");
-        $dumpvars(0, main);
+        $dumpvars(0, Main);
     end
 
     wire clk;
     Clock c0(clk);
 
-    wire [15:0] pc_array[0:3];
+    reg [63:0] pc_array = 64'h0000000200040006;
+
+    wire [59:0] pc_array_truncated = {pc_array[63:49], pc_array[47:33], pc_array[31:17], pc_array[15:1]};
+
+    wire [63:0] pc_array_input;
     
-    initial begin
-        assign pc_array[0] = 0;
-        assign pc_array[1] = 2;
-        assign pc_array[2] = 4;
-        assign pc_array[3] = 6;
+    always @(posedge clk) begin 
+        pc_array <= pc_array_input;
     end
 
-    wire [15:0] instructions[0:3];
+    wire [63:0] instructions;
 
     InstructionCache iCache
     (clk,
-    pc_array, instructions);
+    pc_array_truncated, instructions);
 
     // go to rob
     wire [3:0] rob_head;
@@ -33,24 +34,26 @@ module Main;
     wire is_branch = 0;
 
     // go to instruction buffer
-    wire [3:0] opcode_out[0:3];
-    wire op_a_local_dep_out[0:3];
-    wire [3:0] op_a_owner_out[0:3];
-    wire op_b_local_dep_out[0:3];
-    wire [3:0] op_b_owner_out[0:3];
-    wire [3:0] rt_out[0:3];
+    wire [15:0] opcode_out;
+    wire [31:0] immediate_out;
 
-    wire uses_rb_out[0:3];
-    wire is_ld_str_out[0:3];
-    wire is_fxu_out[0:3];
-    wire is_branch_out[0:3];
+    wire [3:0]  op_a_local_dep_out;
+    wire [15:0] op_a_owner_out;
+    wire [3:0]  op_b_local_dep_out;
+    wire [15:0] op_b_owner_out;
+    wire [15:0] rt_out;
+
+    wire [3:0]uses_rb_out;
+    wire [3:0]is_ld_str_out;
+    wire [3:0]is_fxu_out;
+    wire [3:0]is_branch_out;
 
     // comes from instruction buffer
     wire [2:0] num_slots; 
 
     // go to register file
-    wire [3:0] ra_out[0:3];
-    wire [3:0] rb_out[0:3];
+    wire [15:0] ra_out;
+    wire [15:0] rb_out;
     wire if_valid_out;
 
     InstructionFetch iFetcher
@@ -64,9 +67,9 @@ module Main;
 
     num_slots,
 
-    pc_array,
+    pc_array_input,
 
-    opcode_out, 
+    opcode_out, immediate_out,
     op_a_local_dep_out, op_a_owner_out,
     op_b_local_dep_out, op_b_owner_out,
     rt_out,
@@ -80,16 +83,16 @@ module Main;
     if_valid_out);
 
     // come from register file
-    wire [15:0] ra_value[0:3]; 
-    wire ra_busy[0:3];
-    wire [3:0] ra_owner[0:3];
-    wire [15:0] rb_value[0:3];
-    wire rb_busy[0:3];
-    wire [3:0] rb_owner[0:3];
+    wire [63:0] ra_value; 
+    wire [3:0]  ra_busy;
+    wire [15:0] ra_owner;
+    wire [63:0] rb_value;
+    wire [3:0]  rb_busy;
+    wire [15:0] rb_owner;
 
     // come from rob
-    wire rob_output_valid[0:15];
-    wire [15:0] rob_output_values[0:15];
+    wire [15:0]rob_output_valid;
+    wire [255:0] rob_output_values;
 
     // come from functional units
     wire fxu_0_full;
@@ -153,8 +156,8 @@ module Main;
 
     wire [3:0] out_branch_opcode;
     
-    wire out_rob_valid [0:3];
-    wire [3:0] out_rob_rt [0:3];
+    wire [3:0]out_rob_valid;
+    wire [15:0]out_rob_rt;
 
     
     
@@ -163,7 +166,7 @@ module Main;
 
     if_valid_out,
 
-    opcode_out, 
+    opcode_out, immediate_out,
     op_a_local_dep_out, op_a_owner_out,
     op_b_local_dep_out, op_b_owner_out,
     
@@ -200,15 +203,15 @@ module Main;
     out_rob_valid, out_rob_rt);
 
     // come from functional units/common data bus
-    wire cdb_valid[0:3];
-    wire [3:0] indices[0:3];
-    wire [15:0] new_values[0:3];
+    wire [3:0]cdb_valid;
+    wire [15:0] indices;
+    wire [63:0] new_values;
 
     // go to register file
-    wire register_write_enable[0:3];
-    wire [3:0] register_targets[0:3];
-    wire [15:0] register_write_data[0:3];
-    wire [3:0] register_writers[0:3];
+    wire [3:0]register_write_enable;
+    wire [15:0] register_targets;
+    wire [63:0] register_write_data;
+    wire [15:0] register_writers;
 
     // should probably go to instruction buffer
     wire [3:0] size; // PROBLEM!!!!!!!
@@ -217,7 +220,7 @@ module Main;
     (clk,
 
     out_rob_valid,
-    out_rt,
+    out_rob_rt,
 
     cdb_valid,
     indices,
@@ -259,7 +262,7 @@ module Main;
     (clk,
     res_fxu0_out_opcode, res_fxu0_out_instr_index, res_fxu0_out_valid,
     res_fxu0_op1_value, res_fxu0_op2_value, res_fxu0_out_i, 
-    cdb_valid[0], indices[0], new_values[0]
+    cdb_valid[0], indices[15:12], new_values[63:48]
     );
 
 

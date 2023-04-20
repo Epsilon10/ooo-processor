@@ -9,27 +9,54 @@ module ROB
 (input clk, 
 
 // new instructions we're putting into ROB. Mark as invalid.
-input instructions_valid[0:3],
-input [3:0] new_targets[0:3],
+input [3:0]instructions_valid_flat,
+input [15:0] new_targets_flat,
 
 // instructions that are finished executing
-input cdb_valid[0:3],
-input [3:0] indices[0:3],
-input [15:0] new_values[0:3],
+input [3:0]cdb_valid_flat,
+input [15:0] indices_flat,
+input [63:0] new_values_flat,
 
 // output the returned values of finished instructions
-output out_finished[0:15],
-output [15:0] out_values[0:15],
+output [15:0]out_finished_flat,
+output [255:0]out_values_flat,
 
 // output used to write to registers
-output register_write_enable[0:3],
-output [3:0] register_targets[0:3],
-output [15:0] register_write_data[0:3],
-output [3:0] register_writers[0:3],
+output [3:0]register_write_enable_flat,
+output [15:0]register_targets_flat,
+output [63:0]register_write_data_flat,
+output [15:0]register_writers_flat,
 
 // always output the current size and head
 output [3:0] size,
 output [3:0] head);
+
+    genvar n;
+    wire instructions_valid[0:3];
+    wire [3:0]new_targets[0:3];
+    wire cdb_valid[0:3];
+    wire [3:0]indices[0:3];
+    wire [15:0]new_values[0:3];
+
+    // unflatten input wires
+    generate
+        for (n=0;n<4;n=n+1) assign instructions_valid[3-n] = instructions_valid_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign new_targets[3-n] = new_targets_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign cdb_valid[3-n] = cdb_valid_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign indices[3-n] = indices_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign new_values[3-n] = new_values_flat[16*n+15:16*n];
+    endgenerate
+
+    // flatten into output wires from all output regs
+    generate
+        for (n=0; n<16; n=n+1) assign out_finished_flat[1*n+0:1*n] = m_finished[15-n];
+        for (n=0; n<16; n=n+1) assign out_values_flat[16*n+15:16*n] = m_return_values[15-n];
+
+        for (n=0; n<4; n=n+1) assign register_write_enable_flat[1*n+0:1*n] = m_register_write_enable[3-n];
+        for (n=0; n<4; n=n+1) assign register_targets_flat[4*n+3:4*n] = m_register_targets[3-n];
+        for (n=0; n<4; n=n+1) assign register_write_data_flat[16*n+15:16*n] = m_register_write_data[3-n];
+        for (n=0; n<4; n=n+1) assign register_writers_flat[4*n+3:4*n] = m_register_writers[3-n];
+    endgenerate
 
     reg [3:0] m_head = 0;
     reg [3:0] m_tail = 0;
@@ -54,13 +81,7 @@ output [3:0] head);
         end
     end
 
-    assign out_finished = m_finished;
-    assign out_values = m_return_values;
 
-    assign register_write_enable = m_register_write_enable;
-    assign register_targets = m_register_targets;
-    assign register_write_data = m_register_write_data;
-    assign register_writers = m_register_writers;
 
     assign size = m_head - m_tail;
     assign head = m_head;

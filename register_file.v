@@ -4,22 +4,56 @@ module RegisterFile
 (input clk, 
 
 // READ PORT 1 for instruction fetcher
-input [3:0] instr_buffer_read_addr[0:3], 
-output [15:0] read_data_value[0:3], 
-output read_data_busy[0:3], 
-output [3:0] read_data_owner[0:3],
+input [15:0]instr_buffer_read_addr_flat, 
+output [63:0] read_data_value_flat, 
+output [3:0]  read_data_busy_flat, 
+output [15:0] read_data_owner_flat,
 
 // READ PORT 2 for instruciton fetcher
-input [3:0] instr_buffer_read_addr_2[0:3], 
-output [15:0] read_data_value_2[0:3], 
-output read_data_busy_2[0:3], 
-output [3:0] read_data_owner_2[0:3],
+input [15:0]instr_buffer_read_addr_2_flat, 
+output [63:0] read_data_value_2_flat, 
+output [3:0]  read_data_busy_2_flat , 
+output [15:0] read_data_owner_2_flat,
 
 // WRITE PORT
-input retirement_write_data_enable[0:3], 
-input [3:0] retirement_target_reg[0:3], 
-input [15:0] retirement_write_data[0:3], 
-input [3:0] instruction_writer[0:3]);
+input [3:0]retirement_write_data_enable_flat, 
+input [15:0]retirement_target_reg_flat, 
+input [63:0]retirement_write_data_flat, 
+input [15:0]instruction_writer_flat
+);
+
+
+    genvar n;
+    wire [3:0]instr_buffer_read_addr[0:3];
+    wire [3:0]instr_buffer_read_addr_2[0:3];
+    wire retirement_write_data_enable[0:3];
+    wire [3:0]retirement_target_reg[0:3];
+    wire [15:0]retirement_write_data[0:3];
+    wire [3:0]instruction_writer[0:3];
+
+    // unflatten input wires
+    generate
+        for (n=0;n<4;n=n+1) assign instr_buffer_read_addr[3-n] = instr_buffer_read_addr_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign instr_buffer_read_addr_2[3-n] = instr_buffer_read_addr_2_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign retirement_write_data_enable[3-n] = retirement_write_data_enable_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign retirement_target_reg[3-n] = retirement_target_reg_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign retirement_write_data[3-n] = retirement_write_data_flat[16*n+15:16*n];
+        for (n=0;n<4;n=n+1) assign instruction_writer[3-n] = instruction_writer_flat[4*n+3:4*n];
+    endgenerate
+
+    // flatten into output wires from all output regs
+    generate
+        for (n=0; n<4; n=n+1) assign read_data_value_flat [16*n+15:16*n] = m_read_data_value[3-n];
+        for (n=0; n<4; n=n+1) assign read_data_busy_flat  [1*n+0:1*n]    = m_read_data_busy[3-n];
+        for (n=0; n<4; n=n+1) assign read_data_owner_flat [4*n+3:4*n]    = m_read_data_owner[3-n];
+
+        for (n=0; n<4; n=n+1) assign read_data_value_2_flat[16*n+15:16*n] = m_read_data_value_2[3-n];
+        for (n=0; n<4; n=n+1) assign read_data_busy_2_flat [1*n+0:1*n]    = m_read_data_busy_2[3-n];
+        for (n=0; n<4; n=n+1) assign read_data_owner_2_flat[4*n+3:4*n]    = m_read_data_owner_2[3-n];
+    endgenerate
+
+
+
 
     reg [15:0] values[0:15];
     reg busy[0:15];
@@ -32,14 +66,6 @@ input [3:0] instruction_writer[0:3]);
     reg [15:0] m_read_data_value_2[0:3];
     reg m_read_data_busy_2[0:3];
     reg [3:0] m_read_data_owner_2[0:3];
-
-    assign read_data_value = m_read_data_value;
-    assign read_data_busy = m_read_data_busy;
-    assign read_data_owner = m_read_data_owner;
-
-    assign read_data_value_2 = m_read_data_value_2;
-    assign read_data_busy_2 = m_read_data_busy_2;
-    assign read_data_owner_2 = m_read_data_owner_2;
 
     always @(posedge clk) begin
         integer i;

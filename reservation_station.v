@@ -6,20 +6,32 @@ module ReservationStation(input clk,
     output [3:0]out_instr_index, output [3:0]out_opcode, output [7:0]out_i, output out_valid,
     output [15:0]out_val1, output [15:0]out_val2, output is_full,
     // common data bus input
-    input cdb_valid[0:3], input [3:0]cdb_rob_index [0:3], input [15:0] cdb_result [0:3]
+    input [3:0]cdb_valid_flat, input [15:0]cdb_rob_index_flat, input [63:0]cdb_result_flat
     );
     // if the instruction only has one operand, pass in a value for the second one and set is_val_op2 to true
+    genvar n;
+    wire cdb_valid[0:3];
+    wire [3:0]cdb_rob_index[0:3];
+    wire [15:0]cdb_result[0:3];
+    generate
+        for (n=0;n<4;n=n+1) assign cdb_valid[3-n] = cdb_valid_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign cdb_rob_index[3-n] = cdb_rob_index_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign cdb_result[3-n] = cdb_result_flat[16*n+15:16*n];
+    endgenerate
 
-    reg [15:0]instruction_indices[3:0]; // holds instruction address in ROB
-    reg [3:0]instr_opcodes[3:0]; // holds 4-bit instruction opcodes
-    reg [7:0]instr_i_values[3:0];     // holds immediate value for 
-    reg instruction_valid[3:0];  // does this row actually represent an instruction or is it empty?
-    reg [3:0]op1[3:0];   // store owner of operand 1 register
-    reg op1_valid[3:0];  // set to true once op1 resolves to a value
-    reg [15:0]val1[3:0]; // store resolved value of operand 1
-    reg [3:0]op2[3:0];   // store owner of operand 2 register
-    reg op2_valid[3:0];  // set to true once op2 resolves to a value
-    reg [15:0]val2[3:0]; // store resolved value of operand 2
+
+
+
+    reg [15:0]instruction_indices[0:3]; // holds instruction address in ROB
+    reg [3:0]instr_opcodes[0:3]; // holds 4-bit instruction opcodes
+    reg [7:0]instr_i_values[0:3];     // holds immediate value for 
+    reg instruction_valid[0:3];  // does this row actually represent an instruction or is it empty?
+    reg [3:0]op1[0:3];   // store owner of operand 1 register
+    reg op1_valid[0:3];  // set to true once op1 resolves to a value
+    reg [15:0]val1[0:3]; // store resolved value of operand 1
+    reg [3:0]op2[0:3];   // store owner of operand 2 register
+    reg op2_valid[0:3];  // set to true once op2 resolves to a value
+    reg [15:0]val2[0:3]; // store resolved value of operand 2
 
     // output an instruction that is ready if stage 1 of the functional unit isn't busy (which it never is because it's pipelined)
     reg [3:0] out_instr_index_reg; // instruction address in ROB
