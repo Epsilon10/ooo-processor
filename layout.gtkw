@@ -1,0 +1,64 @@
+[*]
+[*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
+[*] Thu Apr 20 07:22:29 2023
+[*]
+[dumpfile] "/Users/siddhbamb/Documents/Programming/CS429H-Gheith/finalProject/ooo-processor/cpu.vcd"
+[dumpfile_mtime] "Thu Apr 20 07:16:12 2023"
+[dumpfile_size] 37594
+[savefile] "/Users/siddhbamb/Documents/Programming/CS429H-Gheith/finalProject/ooo-processor/layout.gtkw"
+[timestart] 0
+[size] 1435 600
+[pos] -1 -1
+*-10.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] iCache.
+[treeopen] Main.
+[sst_width] 257
+[signals_width] 227
+[sst_expanded] 1
+[sst_vpaned_height] 167
+@28
+Main.c0.clk
+@800200
+-Cache PCs
+@c00022
+iCache.pc_array_0[15:0]
+@28
+(0)iCache.pc_array_0[15:0]
+(1)iCache.pc_array_0[15:0]
+(2)iCache.pc_array_0[15:0]
+(3)iCache.pc_array_0[15:0]
+(4)iCache.pc_array_0[15:0]
+(5)iCache.pc_array_0[15:0]
+(6)iCache.pc_array_0[15:0]
+(7)iCache.pc_array_0[15:0]
+(8)iCache.pc_array_0[15:0]
+(9)iCache.pc_array_0[15:0]
+(10)iCache.pc_array_0[15:0]
+(11)iCache.pc_array_0[15:0]
+(12)iCache.pc_array_0[15:0]
+(13)iCache.pc_array_0[15:0]
+(14)iCache.pc_array_0[15:0]
+(15)iCache.pc_array_0[15:0]
+@1401200
+-group_end
+@22
+iCache.pc_array_1[15:0]
+iCache.pc_array_2[15:0]
+iCache.pc_array_3[15:0]
+@1000200
+-Cache PCs
+@800200
+-Cache Instrs
+@22
+iCache.cache_instr0[15:0]
+iCache.cache_instr1[15:0]
+iCache.cache_instr2[15:0]
+iCache.cache_instr3[15:0]
+@1000200
+-Cache Instrs
+@28
+Main.iBuffer.fxu_0_full
+Main.iBuffer.i0_fxu_0
+Main.iBuffer.i1_fxu_0
+[pattern_trace] 1
+[pattern_trace] 0

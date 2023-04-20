@@ -18,6 +18,11 @@ output [63:0] instructions_flat);
         for (i=0; i<4; i=i+1) assign instructions_flat [16*i+15:16*i] = rdata_array[3-i];
     endgenerate
 
+    wire [15:0]pc_array_0 = {pc_array_flat[59:45], 1'b0};
+    wire [15:0]pc_array_1 = {pc_array_flat[44:30], 1'b0};
+    wire [15:0]pc_array_2 = {pc_array_flat[29:15], 1'b0};
+    wire [15:0]pc_array_3 = {pc_array_flat[14:0 ], 1'b0};
+
 
     reg [15:0] data[0:16'h7fff];
 
@@ -27,6 +32,11 @@ output [63:0] instructions_flat);
     end
 
     reg [15:0] rdata_array[0:3];
+
+    wire [15:0] cache_instr0 = rdata_array[0];
+    wire [15:0] cache_instr1 = rdata_array[1];
+    wire [15:0] cache_instr2 = rdata_array[2];
+    wire [15:0] cache_instr3 = rdata_array[3];
 
 
     always @(posedge clk) begin
