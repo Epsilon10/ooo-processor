@@ -62,12 +62,13 @@ output if_valid_out
     endgenerate
 
     reg started = 0;
-    reg if_valid = 1;
+    reg if_valid = 0;
     assign if_valid_out = if_valid;
 
     reg [15:0] m_pc_to_icache[0:3];
 
     reg [15:0] last_pc;
+    reg if_0_valid = 0;
 
     initial begin 
         integer p;
@@ -76,6 +77,7 @@ output if_valid_out
         end
 
         last_pc = 6;
+        if_0_valid <= started;
     end
 
     always @(posedge clk) begin 
@@ -101,6 +103,7 @@ output if_valid_out
         d_instr[1] <= instr[1];
         d_instr[2] <= instr[2];
         d_instr[3] <= instr[3];
+        if_valid <= if_0_valid;
     end
 
     wire [3:0] d_opcode[0:3];

@@ -106,6 +106,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     endgenerate
 
     // flatten into output wires from all output regs
+
     generate
         for (n=0; n<4; n=n+1) assign out_rob_valid_flat [1*n+0:1*n] = rob_valid[3-n];
         for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = rt[3-n];
@@ -154,7 +155,7 @@ wire ib_b_valid[0:3];
 
 reg [2:0] m_num_fetch = 0;
 
-reg ib_valid;
+reg ib_valid = 0;
 
 always @(posedge clk) begin 
     integer i;
@@ -163,6 +164,7 @@ always @(posedge clk) begin
         ib_a_owner[i] <= op_a_local_dep[i] ? op_a_owner[i] : ra_owner[i];
         ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : rb_owner[i+1];
         ib_opcode[i] <= opcode[i];
+        immediate[i] <= w_immediate[i];
         op_a_local_dep[i] <= w_op_a_local_dep[i];
         op_a_owner[i] <= w_op_a_owner[i];
         op_b_local_dep[i] <= w_op_b_local_dep[i];
@@ -192,20 +194,25 @@ always @(posedge clk) begin
     m_num_fetch <= m_num_fetch_wire;
 end
 
-assign ib_a_valid[0] = ~op_a_local_dep[0] & (rob_output_valid[ib_a_owner[0]] | ~ra_busy[0]);
-assign ib_a_valid[1] = ~op_a_local_dep[1] & (rob_output_valid[ib_a_owner[1]] | ~ra_busy[1]);
-assign ib_b_valid[2] = ~op_a_local_dep[2] & (rob_output_valid[ib_a_owner[2]] | ~ra_busy[2]);
-assign ib_a_valid[3] = ~op_a_local_dep[3] & (rob_output_valid[ib_a_owner[3]] | ~ra_busy[3]);
+wire is_mov_imm_0 = ib_opcode[0] == 5 | ib_opcode[0] == 5;
+wire is_mov_imm_1 = ib_opcode[1] == 5 | ib_opcode[1] == 6;
+wire is_mov_imm_2 = ib_opcode[2] == 5 | ib_opcode[2] == 6;
+wire is_mov_imm_3 = ib_opcode[3] == 5 | ib_opcode[3] == 6; 
+
+assign ib_a_valid[0] = (~op_a_local_dep[0] & (rob_output_valid[ib_a_owner[0]] | ~ra_busy[0]))  | is_mov_imm_0;
+assign ib_a_valid[1] = (~op_a_local_dep[1] & (rob_output_valid[ib_a_owner[1]] | ~ra_busy[1])) | is_mov_imm_1;
+assign ib_a_valid[2] = (~op_a_local_dep[2] & (rob_output_valid[ib_a_owner[2]] | ~ra_busy[2])) | is_mov_imm_2;
+assign ib_a_valid[3] = (~op_a_local_dep[3] & (rob_output_valid[ib_a_owner[3]] | ~ra_busy[3])) | is_mov_imm_3;
 
 assign ib_a_value[0] = ra_busy[0] ? rob_output_values[ib_a_owner[0]] : ra_value[0];
 assign ib_a_value[1] = ra_busy[1] ? rob_output_values[ib_a_owner[1]] : ra_value[1];
-assign ib_b_value[2] = ra_busy[2] ? rob_output_values[ib_a_owner[2]] : ra_value[2];
+assign ib_a_value[2] = ra_busy[2] ? rob_output_values[ib_a_owner[2]] : ra_value[2];
 assign ib_a_value[3] = ra_busy[3] ? rob_output_values[ib_a_owner[3]] : ra_value[3];
 
-assign ib_b_valid[0] = ~uses_rb[0] | (~op_b_local_dep[0] & (rob_output_valid[ib_b_owner[0]] | ~rb_busy[0]));
-assign ib_b_valid[1] = ~uses_rb[1] | (~op_b_local_dep[1] & (rob_output_valid[ib_b_owner[1]] | ~rb_busy[1]));
-assign ib_b_valid[2] = ~uses_rb[2] | (~op_b_local_dep[2] & (rob_output_valid[ib_b_owner[2]] | ~rb_busy[2]));
-assign ib_b_valid[3] = ~uses_rb[3] | (~op_b_local_dep[3] & (rob_output_valid[ib_b_owner[3]] | ~rb_busy[3]));
+assign ib_b_valid[0] = (~uses_rb[0] | (~op_b_local_dep[0] & (rob_output_valid[ib_b_owner[0]] | ~rb_busy[0]))) | is_mov_imm_0;
+assign ib_b_valid[1] = (~uses_rb[1] | (~op_b_local_dep[1] & (rob_output_valid[ib_b_owner[1]] | ~rb_busy[1]))) | is_mov_imm_1;
+assign ib_b_valid[2] = (~uses_rb[2] | (~op_b_local_dep[2] & (rob_output_valid[ib_b_owner[2]] | ~rb_busy[2]))) | is_mov_imm_2;
+assign ib_b_valid[3] = (~uses_rb[3] | (~op_b_local_dep[3] & (rob_output_valid[ib_b_owner[3]] | ~rb_busy[3]))) | is_mov_imm_3;
 
 assign ib_b_value[0] = rb_busy[0] ? rob_output_values[ib_b_owner[0]] : rb_value[0];
 assign ib_b_value[1] = rb_busy[1] ? rob_output_values[ib_b_owner[1]] : rb_value[1];
@@ -250,7 +257,7 @@ wire branch_valid = branch_instr != `NULL;
 
 assign out_fxu_0_instr_valid = fxu_0_valid;
 assign out_fxu_0_rob_idx = rob_head_idx + fxu_0_instr;
-assign out_fxu_0_opcode = opcode[fxu_0_instr];
+assign out_fxu_0_opcode = ib_opcode[fxu_0_instr];
 assign out_fxu_0_i = immediate[fxu_0_instr];
 
 assign out_fxu_0_a_valid = ib_a_valid[fxu_0_instr];
@@ -288,10 +295,10 @@ assign out_branch_b_value = ib_b_value[branch_instr];
 
 wire rob_valid [0:3];
 
-assign rob_valid[0] = ~stall_0;
-assign rob_valid[1] = ~stall_0 & ~stall_1;
-assign rob_valid[2] = ~stall_0 & ~stall_1 & ~stall_2;
-assign rob_valid[3] = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
+assign rob_valid[0] = ib_valid & ~stall_0;
+assign rob_valid[1] = ib_valid & ~stall_0 & ~stall_1;
+assign rob_valid[2] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2;
+assign rob_valid[3] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
 wire i3_writes_to_reg = ib_opcode[3] == 0 | ib_opcode[3] == 1 | ib_opcode[3] == 2 | ib_opcode[3] == 4 | ib_opcode[3] == 5 | ib_opcode[3] == 6;
 wire i2_writes_to_reg = ib_opcode[2] == 0 | ib_opcode[2] == 1 | ib_opcode[2] == 2 | ib_opcode[2] == 4 | ib_opcode[2] == 5 | ib_opcode[2] == 6;

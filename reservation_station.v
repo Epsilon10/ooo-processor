@@ -60,7 +60,10 @@ module ReservationStation(input clk,
     assign is_full = is_full_reg;
 
     integer i;
-
+    wire i0_valid = instruction_valid[2'b00];
+    wire [3:0] i0_opcode = instr_opcodes[0];
+    wire i0_op1_valid = op1_valid[0];
+    wire i0_op2_valid = op2_valid[0];
     always @(posedge clk) begin
         // write an instruction to a free spot in the reservation station
         if (wen & ~instruction_valid[2'b00]) begin
