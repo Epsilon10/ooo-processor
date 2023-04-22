@@ -119,12 +119,12 @@ output if_valid_out
     assign d_opcode[2] = d_instr[2][15:12];
     assign d_opcode[3] = d_instr[3][15:12];
 
-    wire [3:0] d_immediate[0:3];
+    wire [7:0] d_immediate[0:3];
 
-    assign d_immediate[0] = d_instr[0][11:4];
-    assign d_immediate[1] = d_instr[1][11:4];
-    assign d_immediate[2] = d_instr[2][11:4];
-    assign d_immediate[3] = d_instr[3][11:4];
+    assign d_immediate[0] = d_instr[0][7:0];
+    assign d_immediate[1] = d_instr[1][7:0];
+    assign d_immediate[2] = d_instr[2][7:0];
+    assign d_immediate[3] = d_instr[3][7:0];
 
     wire [3:0] d_rt[3:0];
 

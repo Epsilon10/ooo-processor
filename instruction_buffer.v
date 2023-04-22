@@ -118,7 +118,6 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     endgenerate
 
 reg [7:0] immediate[0:3];
-wire poop_fxu = w_is_fxu[0];
 
 reg op_a_local_dep[0:3]; 
 reg [3:0] op_a_owner[0:3];
@@ -221,16 +220,19 @@ assign ib_b_value[3] = rb_busy[3] ? rob_output_values[ib_b_owner[3]] : rb_value[
 
 wire is_fxu_0_w = is_fxu[0];
 wire i0_fxu_0 = is_fxu[0] & ~fxu_0_full;
-wire i0_fxu_1 = is_fxu[0] & fxu_0_full & ~fxu_1_full;
+wire i0_fxu_1 = is_fxu[0] & ~i0_fxu_0 & ~fxu_1_full;
+
+wire is_fxu_0 = is_fxu[0];
+wire is_fxu_1 = is_fxu[1];
 
 wire i1_fxu_0 = is_fxu[1] & ~fxu_0_full & ~i0_fxu_0;
-wire i1_fxu_1 = is_fxu[1] & fxu_0_full & ~fxu_1_full & ~i0_fxu_1;
+wire i1_fxu_1 = is_fxu[1] & ~i1_fxu_0 & ~fxu_1_full & ~i0_fxu_1;
 
 wire i2_fxu_0 = is_fxu[2] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0;
-wire i2_fxu_1 = is_fxu[2] & fxu_0_full & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1;
+wire i2_fxu_1 = is_fxu[2] & ~i2_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1;
 
 wire i3_fxu_0 = is_fxu[3] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0 & ~i2_fxu_0;
-wire i3_fxu_1 = is_fxu[3] & fxu_0_full & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1 & ~i2_fxu_1;
+wire i3_fxu_1 = is_fxu[3] & ~i3_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1 & ~i2_fxu_1;
 
 wire i0_branch = is_branch[0] & ~branch_full;
 wire i1_branch = is_branch[1] & ~branch_full & ~i0_branch;
@@ -270,7 +272,7 @@ assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 
 assign out_fxu_1_instr_valid = fxu_1_valid;
 assign out_fxu_1_rob_idx = rob_head_idx + fxu_1_instr;
-assign out_fxu_1_opcode = opcode[fxu_1_instr];
+assign out_fxu_1_opcode = ib_opcode[fxu_1_instr];
 assign out_fxu_1_i = immediate[fxu_1_instr];
 
 assign out_fxu_1_a_valid = ib_a_valid[fxu_1_instr];
@@ -283,7 +285,7 @@ assign out_fxu_1_b_value = ib_b_value[fxu_1_instr];
 
 assign out_branch_instr_valid = branch_valid;
 assign out_branch_rob_idx = rob_head_idx + branch_instr;
-assign out_branch_opcode = opcode[branch_instr];
+assign out_branch_opcode = ib_opcode[branch_instr];
 
 assign out_branch_a_valid = ib_a_valid[branch_instr];
 assign out_branch_a_owner = ib_a_owner[branch_instr];

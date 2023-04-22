@@ -1,21 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.107 (w)1999-2020 BSI
-[*] Thu Apr 20 07:22:29 2023
+[*] Sat Apr 22 21:21:05 2023
 [*]
 [dumpfile] "/Users/siddhbamb/Documents/Programming/CS429H-Gheith/finalProject/ooo-processor/cpu.vcd"
-[dumpfile_mtime] "Thu Apr 20 07:16:12 2023"
-[dumpfile_size] 37594
+[dumpfile_mtime] "Sat Apr 22 20:59:24 2023"
+[dumpfile_size] 39515
 [savefile] "/Users/siddhbamb/Documents/Programming/CS429H-Gheith/finalProject/ooo-processor/layout.gtkw"
 [timestart] 0
-[size] 1435 600
-[pos] -1 -1
-*-10.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[size] 1440 900
+[pos] -1 -24
+*-12.000000 6020 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] iCache.
 [treeopen] Main.
 [sst_width] 257
-[signals_width] 227
+[signals_width] 253
 [sst_expanded] 1
-[sst_vpaned_height] 167
+[sst_vpaned_height] 272
 @28
 Main.c0.clk
 @800200
@@ -56,9 +56,98 @@ iCache.cache_instr2[15:0]
 iCache.cache_instr3[15:0]
 @1000200
 -Cache Instrs
+@800200
+-FXU0 Reservation Station
 @28
-Main.iBuffer.fxu_0_full
-Main.iBuffer.i0_fxu_0
-Main.iBuffer.i1_fxu_0
+Main.fxu0_reservationstation.is_full
+@800200
+-Write
+@28
+Main.fxu0_reservationstation.wen
+@22
+Main.fxu0_reservationstation.instr_opcode[3:0]
+Main.fxu0_reservationstation.instr_i[7:0]
+Main.fxu0_reservationstation.in_op1[3:0]
+Main.fxu0_reservationstation.in_op2[3:0]
+Main.fxu0_reservationstation.in_val1[15:0]
+Main.fxu0_reservationstation.in_val2[15:0]
+@28
+Main.fxu0_reservationstation.is_val_op1
+Main.fxu0_reservationstation.is_val_op2
+@1000200
+-Write
+@800200
+-Read
+@28
+Main.fxu0_reservationstation.out_valid
+@22
+Main.fxu0_reservationstation.out_instr_index[3:0]
+Main.fxu0_reservationstation.out_opcode[3:0]
+Main.fxu0_reservationstation.out_i[7:0]
+Main.fxu0_reservationstation.out_val1[15:0]
+Main.fxu0_reservationstation.out_val2[15:0]
+@1000200
+-Read
+-FXU0 Reservation Station
+@800200
+-FXU0
+@22
+Main.fxu0.in_opcode[3:0]
+Main.fxu0.opcode[3:0]
+@28
+Main.fxu0.isMovl
+Main.fxu0.out_valid
+@22
+Main.fxu0.out_return_value[15:0]
+Main.fxu0.out_rob_index[3:0]
+@1000200
+-FXU0
+@800200
+-FXU1 Reservation Station
+@28
+Main.fxu1_reservationstation.is_full
+@c00200
+-Write
+@28
+Main.fxu1_reservationstation.wen
+@22
+Main.fxu1_reservationstation.instr_opcode[3:0]
+Main.fxu1_reservationstation.instr_i[7:0]
+Main.fxu1_reservationstation.in_op1[3:0]
+Main.fxu1_reservationstation.in_op2[3:0]
+Main.fxu1_reservationstation.in_val1[15:0]
+Main.fxu1_reservationstation.in_val2[15:0]
+@28
+Main.fxu1_reservationstation.is_val_op1
+Main.fxu1_reservationstation.is_val_op2
+@1401200
+-Write
+@800201
+-Read
+@29
+Main.fxu1_reservationstation.out_valid
+@23
+Main.fxu1_reservationstation.out_instr_index[3:0]
+Main.fxu1_reservationstation.out_opcode[3:0]
+Main.fxu1_reservationstation.out_i[7:0]
+Main.fxu1_reservationstation.out_val1[15:0]
+Main.fxu1_reservationstation.out_val2[15:0]
+@1000201
+-Read
+@1000200
+-FXU1 Reservation Station
+@800200
+-FXU1
+@22
+Main.fxu1.in_opcode[3:0]
+Main.fxu1.opcode[3:0]
+@28
+Main.fxu1.isMovl
+Main.fxu1.out_valid
+@22
+Main.fxu1.out_return_value[15:0]
+Main.fxu1.out_rob_index[3:0]
+@1000200
+-FXU1
 [pattern_trace] 1
 [pattern_trace] 0

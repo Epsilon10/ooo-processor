@@ -208,10 +208,15 @@ module Main;
     );
 
     // come from functional units/common data bus
-    wire [3:0]cdb_valid;
-    assign cdb_valid[0] = 0;
-    assign cdb_valid[1] = 0;
-    assign cdb_valid[2] = 0;
+    wire cdb_valid_0;
+    wire cdb_valid_1;
+    wire cdb_valid_2;
+    wire cdb_valid_3;
+
+    wire [3:0]cdb_valid = {cdb_valid_3, cdb_valid_2, cdb_valid_1, cdb_valid_0};
+
+    assign cdb_valid[0] = 0; // TODO remove once branch unit added
+    assign cdb_valid[1] = 0; // TODO remove once LSU added
     wire [15:0] indices;
     wire [63:0] new_values;
 
@@ -270,7 +275,32 @@ module Main;
     (clk,
     res_fxu0_out_opcode, res_fxu0_out_instr_index, res_fxu0_out_valid,
     res_fxu0_op1_value, res_fxu0_op2_value, res_fxu0_out_i, 
-    cdb_valid[3], indices[15:12], new_values[63:48]
+    cdb_valid_3, indices[15:12], new_values[63:48]
+    );
+
+
+    wire [3:0]res_fxu1_out_instr_index;
+    wire [3:0]res_fxu1_out_opcode;
+    wire [7:0]res_fxu1_out_i;
+    wire res_fxu1_out_valid;
+    wire [15:0]res_fxu1_op1_value;
+    wire [15:0]res_fxu1_op2_value;
+
+    ReservationStation fxu1_reservationstation 
+    (clk, 
+    out_fxu_1_instr_valid, 
+    out_fxu_1_rob_idx, out_fxu_1_opcode, out_fxu_1_i, out_fxu_1_a_owner, out_fxu_1_b_owner, out_fxu_1_a_value, out_fxu_1_b_value, out_fxu_1_a_valid, out_fxu_1_b_valid,
+    res_fxu1_out_instr_index, res_fxu1_out_opcode, res_fxu1_out_i, res_fxu1_out_valid,
+    res_fxu1_op1_value, res_fxu1_op2_value, fxu_1_full,
+    // common data bus input
+    cdb_valid, indices, new_values);
+
+
+    FXU fxu1
+    (clk,
+    res_fxu1_out_opcode, res_fxu1_out_instr_index, res_fxu1_out_valid,
+    res_fxu1_op1_value, res_fxu1_op2_value, res_fxu1_out_i, 
+    cdb_valid_2, indices[11:8], new_values[47:32]
     );
 
 
