@@ -43,7 +43,7 @@ module ReservationStation(input clk,
     reg [3:0] out_instr_index_reg; // instruction address in ROB
     reg [3:0] out_opcode_reg; // the instruction itself
     reg [7:0] out_i_reg;      // immediate value if needed
-    reg       out_valid_reg;            // is this an actual output
+    reg       out_valid_reg = 0;            // is this an actual output
     reg [15:0]out_val1_reg;       // resolved value of operand 1
     reg [15:0]out_val2_reg;       // resolved value of operand 2
 

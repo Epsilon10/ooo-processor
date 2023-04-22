@@ -209,6 +209,9 @@ module Main;
 
     // come from functional units/common data bus
     wire [3:0]cdb_valid;
+    assign cdb_valid[0] = 0;
+    assign cdb_valid[1] = 0;
+    assign cdb_valid[2] = 0;
     wire [15:0] indices;
     wire [63:0] new_values;
 
@@ -267,7 +270,7 @@ module Main;
     (clk,
     res_fxu0_out_opcode, res_fxu0_out_instr_index, res_fxu0_out_valid,
     res_fxu0_op1_value, res_fxu0_op2_value, res_fxu0_out_i, 
-    cdb_valid[0], indices[15:12], new_values[63:48]
+    cdb_valid[3], indices[15:12], new_values[63:48]
     );
 
 

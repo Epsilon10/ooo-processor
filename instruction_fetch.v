@@ -77,7 +77,6 @@ output if_valid_out
         end
 
         last_pc = 6;
-        if_0_valid <= started;
     end
 
     always @(posedge clk) begin 
@@ -86,6 +85,8 @@ output if_valid_out
         for (i = 0; i < 4; i++) begin
             m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : (~started ? last_pc + 2*i : last_pc + 2*(i+1));
         end
+        if_0_valid <= started;
+
     end
 
     always @(negedge clk) begin
