@@ -66,14 +66,6 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     wire w_is_fxu[0:3];
     wire w_is_branch[0:3];
 
-    wire [15:0] w_ra_value[0:3];
-    wire w_ra_busy[0:3];
-    wire [3:0] w_ra_owner[0:3];
-
-    wire [15:0] w_rb_value[0:3];
-    wire w_rb_busy[0:3];
-    wire [3:0] w_rb_owner[0:3];
-
     wire w_rob_output_valid[0:15];
     wire [15:0] w_rob_output_values[0:15];
 
@@ -93,13 +85,13 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
         for (n=0;n<4;n=n+1) assign w_is_fxu[3-n] = is_fxu_flat[1*n+0:1*n];
         for (n=0;n<4;n=n+1) assign w_is_branch[3-n] = is_branch_flat[1*n+0:1*n];
 
-        for (n=0;n<4;n=n+1) assign w_ra_value[3-n] = ra_value_flat[16*n+15:16*n];
-        for (n=0;n<4;n=n+1) assign w_ra_busy[3-n] = ra_busy_flat[1*n+0:1*n];
-        for (n=0;n<4;n=n+1) assign w_ra_owner[3-n] = ra_owner_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign ra_value[3-n] = ra_value_flat[16*n+15:16*n];
+        for (n=0;n<4;n=n+1) assign ra_busy[3-n] = ra_busy_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign ra_owner[3-n] = ra_owner_flat[4*n+3:4*n];
         
-        for (n=0;n<4;n=n+1) assign w_rb_value[3-n] = rb_value_flat[16*n+15:16*n];
-        for (n=0;n<4;n=n+1) assign w_rb_busy[3-n] = rb_busy_flat[1*n+0:1*n];
-        for (n=0;n<4;n=n+1) assign w_rb_owner[3-n] = rb_owner_flat[4*n+3:4*n];
+        for (n=0;n<4;n=n+1) assign rb_value[3-n] = rb_value_flat[16*n+15:16*n];
+        for (n=0;n<4;n=n+1) assign rb_busy[3-n] = rb_busy_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign rb_owner[3-n] = rb_owner_flat[4*n+3:4*n];
         
         for (n=0;n<16;n=n+1) assign w_rob_output_valid[15-n] = rob_output_valid_flat[1*n+0:1*n];
         for (n=0;n<16;n=n+1) assign w_rob_output_values[15-n] = rob_output_values_flat[16*n+15:16*n];
@@ -160,8 +152,8 @@ always @(posedge clk) begin
     integer i;
 
     for (i = 0; i < 4; i++) begin
-        ib_a_owner[i] <= op_a_local_dep[i] ? op_a_owner[i] : ra_owner[i];
-        ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : rb_owner[i+1];
+        ib_a_owner[i] <= op_a_local_dep[i] ? op_a_owner[i] : (ra_busy[i] ? ra_owner[i] : rob_head_idx + i);
+        ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : (rb_busy[i] ? rb_owner[i] : rob_head_idx + i);
         ib_opcode[i] <= opcode[i];
         immediate[i] <= w_immediate[i];
         op_a_local_dep[i] <= w_op_a_local_dep[i];
@@ -174,15 +166,6 @@ always @(posedge clk) begin
         is_ld_str[i] <= w_is_ld_str[i];
         is_fxu[i] <= w_is_fxu[i];
         is_branch[i] <= w_is_branch[i];
-
-        ra_value[i] <= w_ra_value[i];
-        ra_busy[i] <= w_ra_busy[i];
-        ra_owner[i] <= w_ra_owner[i];
-
-        rb_value[i] <= w_rb_value[i];
-        rb_busy[i] <= w_rb_busy[i];
-        rb_owner[i] <= w_rb_owner[i];
-
     end
 
     for (i = 0; i < 15; i++) begin

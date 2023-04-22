@@ -155,6 +155,7 @@ output if_valid_out
 
     // ra dependcy checking
     assign op_a_local_dep[0] = 0;
+    assign op_a_owner[0] = rob_head_idx;
 
     wire d_uses_ra_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 2 | d_opcode[1] == 3 
         | d_opcode[1] == 4 | d_opcode[1] == 8 | d_opcode[1] == 9 | d_opcode[1] == 10 | d_opcode[1] == 11;
@@ -187,6 +188,7 @@ output if_valid_out
     assign op_a_local_dep[3] = op_a_owner[3] != rob_head_idx + 3;
 
     assign op_b_local_dep[0] = 0;
+    assign op_b_owner[0] = rob_head_idx;
 
     wire d_uses_rb_1 = d_opcode[1] == 0 | d_opcode[1] == 1 | d_opcode[1] == 10 | d_opcode[1] == 11 | d_opcode[1] == 4;
 

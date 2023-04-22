@@ -84,8 +84,11 @@ input [15:0] rt_owner_flat
     initial begin
         integer i;
         for (i = 0; i < 16; i++) begin
-            m_read_data_busy[i] = 0;
+            busy[i] = 0;
         end
+
+        values[5] = 70;
+        values[2] = 0;
     end
 
     always @(posedge clk) begin
