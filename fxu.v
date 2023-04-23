@@ -32,7 +32,7 @@ output out_valid, output [3:0] out_rob_index, output [15:0] out_return_value);
     isAdd ? va + vb : 
     isSub ? va - vb :
     isMov ? va :
-    isMovl ? {va[15:8], i} : 
+    isMovl ? {{8{i[7]}}, i} : 
     isMovh ? {i, va[7:0]} : 
     0;
 
