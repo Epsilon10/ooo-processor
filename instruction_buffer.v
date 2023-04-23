@@ -45,7 +45,7 @@ output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_ow
 output out_branch_instr_valid, output [3:0] out_branch_rob_idx, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
 output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner, output [3:0] out_branch_opcode,
 
-output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat,
+output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat, output [3:0] rob_halt,
 
 output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15:0] rt_owner_flat
 );
@@ -284,6 +284,11 @@ assign rob_valid[0] = ib_valid & ~stall_0;
 assign rob_valid[1] = ib_valid & ~stall_0 & ~stall_1;
 assign rob_valid[2] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2;
 assign rob_valid[3] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
+
+assign rob_halt[0] = !is_fxu[0] & !is_branch[0] & !is_ld_str[0];
+assign rob_halt[1] = !is_fxu[1] & !is_branch[1] & !is_ld_str[1];
+assign rob_halt[2] = !is_fxu[2] & !is_branch[2] & !is_ld_str[2];
+assign rob_halt[3] = !is_fxu[3] & !is_branch[3] & !is_ld_str[3];
 
 wire i3_writes_to_reg = ib_opcode[3] == 0 | ib_opcode[3] == 1 | ib_opcode[3] == 2 | ib_opcode[3] == 4 | ib_opcode[3] == 5 | ib_opcode[3] == 6;
 wire i2_writes_to_reg = ib_opcode[2] == 0 | ib_opcode[2] == 1 | ib_opcode[2] == 2 | ib_opcode[2] == 4 | ib_opcode[2] == 5 | ib_opcode[2] == 6;

@@ -9,11 +9,12 @@ module ROB
 (input clk, 
 
 // new instructions we're putting into ROB. Mark as invalid.
-input [3:0]instructions_valid_flat,
+input [3:0] instructions_valid_flat,
 input [15:0] new_targets_flat,
+input [3:0] halt,
 
 // instructions that are finished executing
-input [3:0]cdb_valid_flat,
+input [3:0] cdb_valid_flat,
 input [15:0] indices_flat,
 input [63:0] new_values_flat,
 
@@ -64,6 +65,7 @@ output [3:0] head);
     reg [3:0] m_target_registers[0:15];
     reg [15:0] m_return_values[0:15];
     reg m_finished[0:15];
+    reg m_halt[0:15];
 
     reg m_register_write_enable[0:3];
     reg [3:0] m_register_targets[0:3];
@@ -87,17 +89,21 @@ output [3:0] head);
     always @(posedge clk) begin 
         // write to registers
         for(i = 0; i < 4; i++) begin 
-            if (m_finished[m_tail + i]) begin 
+            if (commit[i]) begin 
                 m_register_write_enable[i] <= 1;
                 m_register_targets[i] <= m_target_registers[m_tail + i];
                 m_register_write_data[i] <= m_return_values[m_tail + i];
                 m_register_writers[i] <= m_tail + i;
 
-               m_finished[m_tail + i] <= 0;
+                m_finished[m_tail + i] <= 0;
 
                 if (m_target_registers[m_tail + i] == 0) begin 
-                  // $write("ypoooo");
                     $write("%c", m_return_values[m_tail + i]);
+                end
+
+                if (m_halt[m_tail + i]) begin 
+                    $write("\n");
+                    $finish;
                 end
             end
         end
@@ -111,8 +117,9 @@ output [3:0] head);
 
         for (i = 0; i < 4; i++) begin 
             if(instructions_valid[i]) begin 
-                m_finished[m_head + i] <= 0;
+                m_finished[m_head + i] <= halt[i]; // if it's a halt, then it's finished
                 m_target_registers[m_head + i] <= new_targets[i];
+                m_halt[m_head + i] <= halt[i];
             end
         end
         m_head <= m_head + instructions_valid[0] + instructions_valid[1] + instructions_valid[2] + instructions_valid[3];
@@ -129,6 +136,12 @@ output [3:0] head);
             end
         end
     end
+
+    wire [3:0] commit;
+    assign commit[0] = m_finished[m_tail];
+    assign commit[1] = commit[0] & m_finished[m_tail + 1];
+    assign commit[2] = commit[0] & commit[1] & m_finished[m_tail + 2];
+    assign commit[3] = commit[0] & commit[1] & commit[2] & m_finished[m_tail + 3];
 
     wire [15:0]ret_0 = m_return_values[0];
     wire [15:0]n_0 = new_values[0];

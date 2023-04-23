@@ -163,6 +163,8 @@ module Main;
     wire [3:0] rt_update_enable_flat;
     output [15:0] rt_target_reg_flat;
     output [15:0] rt_owner_flat;
+
+    wire [3:0] rob_halt;
     
     InstructionBuffer iBuffer
     (clk,
@@ -203,7 +205,7 @@ module Main;
     out_branch_instr_valid, out_branch_rob_idx, out_branch_a_valid, out_branch_a_value, out_branch_a_owner, 
     out_branch_b_valid, out_branch_b_value, out_branch_b_owner,out_branch_opcode,
 
-    out_rob_valid, out_rob_rt,
+    out_rob_valid, out_rob_rt, rob_halt,
     rt_update_enable_flat, rt_target_reg_flat, rt_owner_flat
     );
 
@@ -234,6 +236,7 @@ module Main;
 
     out_rob_valid,
     out_rob_rt,
+    rob_halt,
 
     cdb_valid,
     indices,
