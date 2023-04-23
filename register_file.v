@@ -10,7 +10,7 @@ output [3:0]  read_data_busy_flat,
 output [15:0] read_data_owner_flat,
 
 // READ PORT 2 for instruciton fetcher
-input [15:0]instr_buffer_read_addr_2_flat, 
+input  [15:0] instr_buffer_read_addr_2_flat, 
 output [63:0] read_data_value_2_flat, 
 output [3:0]  read_data_busy_2_flat , 
 output [15:0] read_data_owner_2_flat,
@@ -66,9 +66,6 @@ input [15:0] rt_owner_flat
         for (n=0; n<4; n=n+1) assign read_data_owner_2_flat[4*n+3:4*n]    = m_read_data_owner_2[3-n];
     endgenerate
 
-
-
-
     reg [15:0] values[0:15];
     reg busy[0:15];
     reg [3:0] owner[0:15];
@@ -96,14 +93,14 @@ input [15:0] rt_owner_flat
 
         // read 1
         for (i = 0; i < 4; i++) begin
-            m_read_data_value[i] <= values[instr_buffer_read_addr[i]];
+            m_read_data_value[i] <= instr_buffer_read_addr[i] == 0 ? 0 : values[instr_buffer_read_addr[i]];
             m_read_data_busy[i] <= busy[instr_buffer_read_addr[i]];
             m_read_data_owner[i] <= owner[instr_buffer_read_addr[i]];
         end
 
         // read 2
         for (i = 0; i < 4; i++) begin
-            m_read_data_value_2[i] <= values[instr_buffer_read_addr_2[i]];
+            m_read_data_value_2[i] <= instr_buffer_read_addr_2[i] == 0 ? 0 : values[instr_buffer_read_addr_2[i]];
             m_read_data_busy_2[i] <= busy[instr_buffer_read_addr_2[i]];
             m_read_data_owner_2[i] <= owner[instr_buffer_read_addr_2[i]];
         end
