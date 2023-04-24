@@ -52,7 +52,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     
     genvar n;
 
-    reg first_time = 0;
+    reg first_time = 1;
 
     wire [3:0] opcode[0:3];
     wire [7:0] w_immediate[0:3];
@@ -103,7 +103,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
 
     generate
         for (n=0; n<4; n=n+1) assign out_rob_valid_flat [1*n+0:1*n] = rob_valid[3-n];
-        for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = rt[3-n];
+        for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = m_out_rt[3-n];
 
         for (n=0; n<4; n=n+1) assign rt_update_enable_flat[1*n+0:1*n] = rt_update_enable[3-n];
         for (n=0; n<4; n=n+1) assign rt_target_reg_flat[4*n+3:4*n] = rt_target_reg[3-n];
@@ -191,6 +191,12 @@ always @(posedge clk) begin
     first_time <= ib_valid;
 end
 
+wire [3:0]m_out_rt [0:3];
+assign m_out_rt[0] = rt[head];
+assign m_out_rt[1] = rt[head_overflow_1];
+assign m_out_rt[2] = rt[head_overflow_2];
+assign m_out_rt[3] = rt[head_overflow_3];
+
 wire stall_array[0:3];
 assign stall_array[0] = stall_0;
 assign stall_array[1] = stall_1;
@@ -263,7 +269,7 @@ wire stall_2 = ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch
 wire stall_3 = ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head+3] & ~i3_branch)) & ib_valid;
 wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
-wire [3:0]m_num_fetch_wire = if_valid ? (stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))))) : 0;
+wire [3:0]m_num_fetch_wire = ib_valid ? (stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))))) : 4;
 assign num_fetch = m_num_fetch_wire;
 wire [2:0]fxu_0_instr = i0_fxu_0 ? head : (i1_fxu_0 ? head_overflow_1 : (i2_fxu_0 ? head_overflow_2 : (i3_fxu_0 ? head_overflow_3 : `NULL)));
 wire [2:0]fxu_1_instr = i0_fxu_1 ? head : (i1_fxu_1 ? head_overflow_1 : (i2_fxu_1 ? head_overflow_2 : (i3_fxu_1 ? head_overflow_3 : `NULL)));
@@ -286,7 +292,7 @@ assign out_fxu_0_b_valid = ib_b_valid[fxu_0_instr];
 assign out_fxu_0_b_owner = ib_b_owner[fxu_0_instr];
 assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 
-assign out_fxu_1_instr_valid = fxu_1_valid;
+assign out_fxu_1_instr_valid =fxu_1_valid;
 assign out_fxu_1_rob_idx = rob_head_idx + (fxu_1_instr - head);
 assign out_fxu_1_opcode = ib_opcode[fxu_1_instr];
 assign out_fxu_1_i = immediate[fxu_1_instr];
@@ -313,15 +319,21 @@ assign out_branch_b_value = ib_b_value[branch_instr];
 
 wire rob_valid [0:3];
 
-assign rob_valid[0] = ib_valid & ~stall_0;
-assign rob_valid[1] = ib_valid & ~stall_0 & ~stall_1;
-assign rob_valid[2] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2;
-assign rob_valid[3] = ib_valid & ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
+assign rob_valid[0] = ~undef_0 & ib_valid & ~stall_0;
+assign rob_valid[1] = ~undef_0 & ~undef_1 & ib_valid & ~stall_0 & ~stall_1;
+assign rob_valid[2] = ~undef_0 & ~undef_1 & ~undef_2 & ib_valid & ~stall_0 & ~stall_1 & ~stall_2;
+assign rob_valid[3] = ~undef_0 & ~undef_1 & ~undef_2 & ~undef_3 & ib_valid & ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
-assign rob_halt[0] = !is_fxu[0] & !is_branch[0] & !is_ld_str[0];
-assign rob_halt[1] = !is_fxu[1] & !is_branch[1] & !is_ld_str[1];
-assign rob_halt[2] = !is_fxu[2] & !is_branch[2] & !is_ld_str[2];
-assign rob_halt[3] = !is_fxu[3] & !is_branch[3] & !is_ld_str[3];
+wire undef_0 = ib_opcode[head] > 12;
+wire undef_1 = ib_opcode[head_overflow_1] > 12;
+wire undef_2 = ib_opcode[head_overflow_2] > 12;
+wire undef_3 = ib_opcode[head_overflow_3] > 12;
+
+// reversed
+assign rob_halt[3] = ib_valid & undef_0;
+assign rob_halt[2] = ib_valid & (undef_1 | undef_0);
+assign rob_halt[1] = ib_valid & (undef_2 | undef_1 | undef_0);
+assign rob_halt[0] = ib_valid & (undef_3 | undef_2 | undef_1 | undef_0);
 
 wire i3_writes_to_reg = ib_opcode[head_overflow_3] == 0 | ib_opcode[head_overflow_3] == 1 | ib_opcode[head_overflow_3] == 2 | ib_opcode[head_overflow_3] == 4 | ib_opcode[head_overflow_3] == 5 | ib_opcode[head_overflow_3] == 6;
 wire i2_writes_to_reg = ib_opcode[head_overflow_2] == 0 | ib_opcode[head_overflow_2] == 1 | ib_opcode[head_overflow_2] == 2 | ib_opcode[head_overflow_2] == 4 | ib_opcode[head_overflow_2] == 5 | ib_opcode[head_overflow_2] == 6;

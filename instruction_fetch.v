@@ -62,7 +62,7 @@ output if_valid_out
     endgenerate
 
     reg started = 0;
-    reg if_valid = 0;
+    reg if_valid = 1;
     assign if_valid_out = if_valid;
 
     reg [15:0] m_pc_to_icache[0:3];
@@ -85,14 +85,14 @@ output if_valid_out
         for (i = 0; i < (started ? num_fetch : 4); i++) begin
             m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : (~started ? last_pc + 2*i : last_pc + 2*(i+1));
         end
-        if_valid <= started;
+        //  <= started;
 
     end
 
     always @(negedge clk) begin
         started <= 1;
         if (num_fetch > 0)
-            last_pc <= m_pc_to_icache[started ? num_fetch - 1: 3];
+            last_pc <= m_pc_to_icache[started ? (num_fetch - 1) : 3];
     end
 
     reg d_valid = 0;
@@ -102,6 +102,11 @@ output if_valid_out
     assign d_instr[1] = instr[1];
     assign d_instr[2] = instr[2];
     assign d_instr[3] = instr[3];
+
+    wire d_instr_0 = instr[0];
+    wire d_instr_1 = instr[1];
+    wire d_instr_2 = instr[2];
+    wire d_instr_3 = instr[3];
 
     wire [3:0] d_opcode[0:3];
 
