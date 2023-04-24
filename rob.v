@@ -129,8 +129,8 @@ output [3:0] head);
            //$write("%d\n", cdb_valid[i]);
 
             if (cdb_valid[i]) begin 
-              // $write("hello");
-                //$write("%d\n", new_values[i]);
+              //$write("hello");
+                $write("%d\n", indices[i]);
                 m_return_values[indices[i]] <= new_values[i];
                 m_finished[indices[i]] <= 1;
             end
@@ -152,6 +152,16 @@ output [3:0] head);
     wire [15:0]n_1 = new_values[1];
     wire fin_1 = m_finished[1];
     wire [3:0] targ_reg_1 = m_target_registers[1];
+
+    wire [15:0]ret_2 = m_return_values[2];
+    wire [15:0]n_2 = new_values[2];
+    wire fin_2 = m_finished[2];
+    wire [3:0] targ_reg_2 = m_target_registers[2];
+
+    wire [15:0]ret_3 = m_return_values[3];
+    wire [15:0]n_3 = new_values[3];
+    wire fin_3 = m_finished[3];
+    wire [3:0] targ_reg_3 = m_target_registers[3];
 
 
 endmodule

@@ -31,19 +31,12 @@ output [63:0] instructions_flat);
         $readmemh("instructions.hex",data);
     end
 
-    reg [15:0] rdata_array[0:3];
+    wire [15:0] rdata_array[0:3];
 
-    wire [15:0] cache_instr0 = rdata_array[0];
-    wire [15:0] cache_instr1 = rdata_array[1];
-    wire [15:0] cache_instr2 = rdata_array[2];
-    wire [15:0] cache_instr3 = rdata_array[3];
+    assign rdata_array[0] = data[pc_array[0]];
+    assign rdata_array[1] = data[pc_array[1]];
+    assign rdata_array[2] = data[pc_array[2]];
+    assign rdata_array[3] = data[pc_array[3]];
 
-
-    always @(posedge clk) begin
-        rdata_array[0] <= data[pc_array[0]];
-        rdata_array[1] <= data[pc_array[1]];
-        rdata_array[2] <= data[pc_array[2]];
-        rdata_array[3] <= data[pc_array[3]];
-    end
 
 endmodule

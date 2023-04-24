@@ -52,6 +52,8 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     
     genvar n;
 
+    reg first_time = 0;
+
     wire [3:0] opcode[0:3];
     wire [7:0] w_immediate[0:3];
 
@@ -148,24 +150,35 @@ reg [2:0] m_num_fetch = 0;
 
 reg ib_valid = 0;
 
+reg [1:0] head = 0;
+
+wire [7:0]imm_0 = immediate[0];
+wire [7:0]imm_1 = immediate[1];
+wire [7:0]imm_2 = immediate[2];
+wire [7:0]imm_3 = immediate[3];
+
 always @(posedge clk) begin 
     integer i;
 
     for (i = 0; i < 4; i++) begin
-        ib_a_owner[i] <= op_a_local_dep[i] ? op_a_owner[i] : (ra_busy[i] ? ra_owner[i] : rob_head_idx + i);
-        ib_b_owner[i] <= op_b_local_dep[i] ? op_b_owner[i] : (rb_busy[i] ? rb_owner[i] : rob_head_idx + i);
-        ib_opcode[i] <= opcode[i];
-        immediate[i] <= w_immediate[i];
-        op_a_local_dep[i] <= w_op_a_local_dep[i];
-        op_a_owner[i] <= w_op_a_owner[i];
-        op_b_local_dep[i] <= w_op_b_local_dep[i];
-        op_b_owner[i] <= w_op_b_owner[i];
+       // $write("cur itr %d\n", i);
+        if (~(ib_valid & stall_array[head + i])) begin
+           // $write("THIS IS VALID: %d\n",i);
+            ib_a_owner[head+i] <= op_a_local_dep[head+i] ? op_a_owner[head+i] : (ra_busy[head+i] ? ra_owner[head+i] : rob_head_idx + i);
+            ib_b_owner[head+i] <= op_b_local_dep[head+i] ? op_b_owner[head+i] : (rb_busy[head+i] ? rb_owner[head+i] : rob_head_idx + i);
+            ib_opcode[head+i] <= opcode[head+i];
+            immediate[head+i] <= w_immediate[head+i];
+            op_a_local_dep[head+i] <= w_op_a_local_dep[head+i];
+            op_a_owner[head+i] <= w_op_a_owner[head+i];
+            op_b_local_dep[head+i] <= w_op_b_local_dep[head+i];
+            op_b_owner[head+i] <= w_op_b_owner[head+i];
 
-        rt[i] <= w_rt[i];
-        uses_rb[i] <= w_uses_rb[i];
-        is_ld_str[i] <= w_is_ld_str[i];
-        is_fxu[i] <= w_is_fxu[i];
-        is_branch[i] <= w_is_branch[i];
+            rt[head+i] <= w_rt[head+i];
+            uses_rb[head+i] <= w_uses_rb[head+i];
+            is_ld_str[head+i] <= w_is_ld_str[head+i];
+            is_fxu[head+i] <= w_is_fxu[head+i];
+            is_branch[head+i] <= w_is_branch[head+i];
+        end
     end
 
     for (i = 0; i < 15; i++) begin
@@ -174,7 +187,17 @@ always @(posedge clk) begin
     end
     ib_valid <= if_valid;
     m_num_fetch <= m_num_fetch_wire;
+    head <= ~ib_valid ? 0 : head + (m_num_fetch_wire);
+    first_time <= ib_valid;
 end
+
+wire stall_array[0:3];
+assign stall_array[0] = stall_0;
+assign stall_array[1] = stall_1;
+assign stall_array[2] = stall_2;
+assign stall_array[3] = stall_3;
+
+wire st_0 = stall_array[0];
 
 wire is_mov_imm_0 = ib_opcode[0] == 5 | ib_opcode[0] == 5;
 wire is_mov_imm_1 = ib_opcode[1] == 5 | ib_opcode[1] == 6;
@@ -201,47 +224,57 @@ assign ib_b_value[1] = rb_busy[1] ? rob_output_values[ib_b_owner[1]] : rb_value[
 assign ib_b_value[2] = rb_busy[2] ? rob_output_values[ib_b_owner[2]] : rb_value[2];
 assign ib_b_value[3] = rb_busy[3] ? rob_output_values[ib_b_owner[3]] : rb_value[3];
 
-wire is_fxu_0_w = is_fxu[0];
-wire i0_fxu_0 = is_fxu[0] & ~fxu_0_full;
-wire i0_fxu_1 = is_fxu[0] & ~i0_fxu_0 & ~fxu_1_full;
 
-wire is_fxu_0 = is_fxu[0];
-wire is_fxu_1 = is_fxu[1];
+wire is_fxu_0_w = is_fxu[head];
+wire is_fxu_1_w = is_fxu[head_overflow_1];
+wire is_fxu_2_w = is_fxu[head_overflow_2];
+wire is_fxu_3_w = is_fxu[head_overflow_3];
 
-wire i1_fxu_0 = is_fxu[1] & ~fxu_0_full & ~i0_fxu_0;
-wire i1_fxu_1 = is_fxu[1] & ~i1_fxu_0 & ~fxu_1_full & ~i0_fxu_1;
 
-wire i2_fxu_0 = is_fxu[2] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0;
-wire i2_fxu_1 = is_fxu[2] & ~i2_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1;
+wire i0_fxu_0 = is_fxu[head] & ~fxu_0_full;
+wire i0_fxu_1 = is_fxu[head] & ~i0_fxu_0 & ~fxu_1_full;
 
-wire i3_fxu_0 = is_fxu[3] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0 & ~i2_fxu_0;
-wire i3_fxu_1 = is_fxu[3] & ~i3_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1 & ~i2_fxu_1;
+wire is_fxu_0 = is_fxu[head];
+wire is_fxu_1 = is_fxu[head];
 
-wire i0_branch = is_branch[0] & ~branch_full;
-wire i1_branch = is_branch[1] & ~branch_full & ~i0_branch;
-wire i2_branch = is_branch[2] & ~branch_full & ~i0_branch & ~i1_branch;
-wire i3_branch = is_branch[3] & ~branch_full & ~i0_branch & ~i1_branch & ~i2_branch;
+wire i1_fxu_0 = is_fxu[head_overflow_1] & ~fxu_0_full & ~i0_fxu_0;
+wire i1_fxu_1 = is_fxu[head_overflow_1] & ~i1_fxu_0 & ~fxu_1_full & ~i0_fxu_1;
+
+wire i2_fxu_0 = is_fxu[head_overflow_2] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0;
+wire i2_fxu_1 = is_fxu[head_overflow_2] & ~i2_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1;
+
+wire i3_fxu_0 = is_fxu[head_overflow_3] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0 & ~i2_fxu_0;
+wire i3_fxu_1 = is_fxu[head_overflow_3] & ~i3_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1 & ~i2_fxu_1;
+
+wire i0_branch = is_branch[head] & ~branch_full;
+wire i1_branch = is_branch[head+1] & ~branch_full & ~i0_branch;
+wire i2_branch = is_branch[head+2] & ~branch_full & ~i0_branch & ~i1_branch;
+wire i3_branch = is_branch[head+3] & ~branch_full & ~i0_branch & ~i1_branch & ~i2_branch;
 
 // add load store later
 
-wire stall_0 = (is_fxu[0] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[0] & ~i0_branch);
-wire stall_1 = (is_fxu[1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[1] & ~i1_branch);
-wire stall_2 = (is_fxu[2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[2] & ~i2_branch);
-wire stall_3 = (is_fxu[3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[3] & ~i3_branch);
+wire [1:0] head_overflow_1 = head + 1;
+wire [1:0] head_overflow_2 = head + 2;
+wire [1:0] head_overflow_3 = head + 3;
+
+wire stall_0 = ((is_fxu[head] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[head] & ~i0_branch)) & ib_valid;
+wire stall_1 = ((is_fxu[head_overflow_1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[head+1] & ~i1_branch)) & ib_valid;
+wire stall_2 = ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[head+2] & ~i2_branch)) & ib_valid;
+wire stall_3 = ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head+3] & ~i3_branch)) & ib_valid;
 wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
-wire m_num_fetch_wire = stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))));
-
-wire [2:0]fxu_0_instr = i0_fxu_0 ? 0 : (i1_fxu_0 ? 1 : (i2_fxu_0 ? 2 : (i3_fxu_0 ? 3 : `NULL)));
-wire [2:0]fxu_1_instr = i0_fxu_1 ? 0 : (i1_fxu_1 ? 1 : (i2_fxu_1 ? 2 : (i3_fxu_1 ? 3 : `NULL)));
-wire [2:0]branch_instr = i0_branch ? 0 : (i1_branch ? 1 : (i2_branch ? 2 : (i3_branch ? 3 : `NULL)));
+wire [3:0]m_num_fetch_wire = if_valid ? (stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))))) : 0;
+assign num_fetch = m_num_fetch_wire;
+wire [2:0]fxu_0_instr = i0_fxu_0 ? head : (i1_fxu_0 ? head_overflow_1 : (i2_fxu_0 ? head_overflow_2 : (i3_fxu_0 ? head_overflow_3 : `NULL)));
+wire [2:0]fxu_1_instr = i0_fxu_1 ? head : (i1_fxu_1 ? head_overflow_1 : (i2_fxu_1 ? head_overflow_2 : (i3_fxu_1 ? head_overflow_3 : `NULL)));
+wire [2:0]branch_instr = i0_branch ? head : (i1_branch ? head_overflow_1 : (i2_branch ? head_overflow_2 : (i3_branch ? head_overflow_3 : `NULL)));
 
 wire fxu_0_valid = fxu_0_instr != `NULL;
 wire fxu_1_valid = fxu_1_instr != `NULL;
 wire branch_valid = branch_instr != `NULL;
 
 assign out_fxu_0_instr_valid = fxu_0_valid;
-assign out_fxu_0_rob_idx = rob_head_idx + fxu_0_instr;
+assign out_fxu_0_rob_idx = rob_head_idx + (fxu_0_instr - head);
 assign out_fxu_0_opcode = ib_opcode[fxu_0_instr];
 assign out_fxu_0_i = immediate[fxu_0_instr];
 
@@ -254,7 +287,7 @@ assign out_fxu_0_b_owner = ib_b_owner[fxu_0_instr];
 assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 
 assign out_fxu_1_instr_valid = fxu_1_valid;
-assign out_fxu_1_rob_idx = rob_head_idx + fxu_1_instr;
+assign out_fxu_1_rob_idx = rob_head_idx + (fxu_1_instr - head);
 assign out_fxu_1_opcode = ib_opcode[fxu_1_instr];
 assign out_fxu_1_i = immediate[fxu_1_instr];
 
@@ -294,6 +327,10 @@ wire i3_writes_to_reg = ib_opcode[3] == 0 | ib_opcode[3] == 1 | ib_opcode[3] == 
 wire i2_writes_to_reg = ib_opcode[2] == 0 | ib_opcode[2] == 1 | ib_opcode[2] == 2 | ib_opcode[2] == 4 | ib_opcode[2] == 5 | ib_opcode[2] == 6;
 wire i1_writes_to_reg = ib_opcode[1] == 0 | ib_opcode[1] == 1 | ib_opcode[1] == 2 | ib_opcode[1] == 4 | ib_opcode[1] == 5 | ib_opcode[1] == 6;
 wire i0_writes_to_reg = ib_opcode[0] == 0 | ib_opcode[0] == 1 | ib_opcode[0] == 2 | ib_opcode[0] == 4 | ib_opcode[0] == 5 | ib_opcode[0] == 6;
+wire i3_writes_to_reg = ib_opcode[head_overflow_3] == 0 | ib_opcode[head_overflow_3] == 1 | ib_opcode[head_overflow_3] == 2 | ib_opcode[head_overflow_3] == 4 | ib_opcode[head_overflow_3] == 5 | ib_opcode[head_overflow_3] == 6;
+wire i2_writes_to_reg = ib_opcode[head_overflow_2] == 0 | ib_opcode[head_overflow_2] == 1 | ib_opcode[head_overflow_2] == 2 | ib_opcode[head_overflow_2] == 4 | ib_opcode[head_overflow_2] == 5 | ib_opcode[head_overflow_2] == 6;
+wire i1_writes_to_reg = ib_opcode[head_overflow_1] == 0 | ib_opcode[head_overflow_1] == 1 | ib_opcode[head_overflow_1] == 2 | ib_opcode[head_overflow_1] == 4 | ib_opcode[head_overflow_1] == 5 | ib_opcode[head_overflow_1] == 6;
+wire i0_writes_to_reg = ib_opcode[head] == 0 | ib_opcode[head] == 1 | ib_opcode[head] == 2 | ib_opcode[head] == 4 | ib_opcode[head] == 5 | ib_opcode[head] == 6;
 
 wire rt_update_enable [0:3];
 wire [3:0] rt_target_reg[0:3];
@@ -302,14 +339,14 @@ wire [3:0] rt_owner[0:3];
 // TODO: unflatten
 
 assign rt_update_enable[3] = 1 & i3_writes_to_reg;
-assign rt_update_enable[2] = rt[3] != rt[2] & i2_writes_to_reg;
-assign rt_update_enable[1] = rt[1] != rt[2] & rt[1] != rt[3] & i1_writes_to_reg; 
-assign rt_update_enable[0] = rt[0] != rt[1] & rt[0] != rt[2] & rt[0] != rt[3] & i0_writes_to_reg;
+assign rt_update_enable[2] = rt[head_overflow_3] != rt[head_overflow_2] & i2_writes_to_reg;
+assign rt_update_enable[1] = rt[head_overflow_1] != rt[head_overflow_2] & rt[head_overflow_1] != rt[head_overflow_3] & i1_writes_to_reg; 
+assign rt_update_enable[0] = rt[head] != rt[head_overflow_1] & rt[head] != rt[head_overflow_2] & rt[head] != rt[head_overflow_3] & i0_writes_to_reg;
 
-assign rt_target_reg[0] = rt[0];
-assign rt_target_reg[1] = rt[1];
-assign rt_target_reg[2] = rt[2];
-assign rt_target_reg[3] = rt[3];
+assign rt_target_reg[0] = rt[head];
+assign rt_target_reg[1] = rt[head_overflow_1];
+assign rt_target_reg[2] = rt[head_overflow_2];
+assign rt_target_reg[3] = rt[head_overflow_3];
 
 assign rt_owner[0] = rob_head_idx;
 assign rt_owner[1] = rob_head_idx + 1;

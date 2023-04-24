@@ -82,30 +82,26 @@ output if_valid_out
     always @(posedge clk) begin 
         integer i;
         
-        for (i = 0; i < 4; i++) begin
+        for (i = 0; i < (started ? num_fetch : 4); i++) begin
             m_pc_to_icache[i] <= is_jump ? jump_target + 2*i : (~started ? last_pc + 2*i : last_pc + 2*(i+1));
         end
-        if_0_valid <= started;
+        if_valid <= started;
 
     end
 
     always @(negedge clk) begin
         started <= 1;
         if (num_fetch > 0)
-            last_pc <= m_pc_to_icache[3];
+            last_pc <= m_pc_to_icache[started ? num_fetch - 1: 3];
     end
 
     reg d_valid = 0;
 
-    reg [15:0] d_instr[0:3];
-
-    always @(posedge clk) begin
-        d_instr[0] <= instr[0];
-        d_instr[1] <= instr[1];
-        d_instr[2] <= instr[2];
-        d_instr[3] <= instr[3];
-        if_valid <= if_0_valid;
-    end
+    wire [15:0] d_instr[0:3];
+    assign d_instr[0] = instr[0];
+    assign d_instr[1] = instr[1];
+    assign d_instr[2] = instr[2];
+    assign d_instr[3] = instr[3];
 
     wire [3:0] d_opcode[0:3];
 
