@@ -3,15 +3,15 @@
 module L1Cache
 (input clk,
 input [15:0] read_addr,
-output [15:0] data_out);
+output [7:0] data_out);
 
-    reg [15:0] data[0:16'hffff];
+    reg [7:0] data[0:16'hffff];
 
     initial begin
         $readmemh("mem.hex", data);
     end
 
-    reg [15:0] m_data;
+    reg [7:0] m_data;
     reg [15:0] m_read_addr;
 
     assign data_out = m_data;
