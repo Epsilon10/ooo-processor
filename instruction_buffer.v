@@ -323,10 +323,6 @@ assign rob_halt[1] = !is_fxu[1] & !is_branch[1] & !is_ld_str[1];
 assign rob_halt[2] = !is_fxu[2] & !is_branch[2] & !is_ld_str[2];
 assign rob_halt[3] = !is_fxu[3] & !is_branch[3] & !is_ld_str[3];
 
-wire i3_writes_to_reg = ib_opcode[3] == 0 | ib_opcode[3] == 1 | ib_opcode[3] == 2 | ib_opcode[3] == 4 | ib_opcode[3] == 5 | ib_opcode[3] == 6;
-wire i2_writes_to_reg = ib_opcode[2] == 0 | ib_opcode[2] == 1 | ib_opcode[2] == 2 | ib_opcode[2] == 4 | ib_opcode[2] == 5 | ib_opcode[2] == 6;
-wire i1_writes_to_reg = ib_opcode[1] == 0 | ib_opcode[1] == 1 | ib_opcode[1] == 2 | ib_opcode[1] == 4 | ib_opcode[1] == 5 | ib_opcode[1] == 6;
-wire i0_writes_to_reg = ib_opcode[0] == 0 | ib_opcode[0] == 1 | ib_opcode[0] == 2 | ib_opcode[0] == 4 | ib_opcode[0] == 5 | ib_opcode[0] == 6;
 wire i3_writes_to_reg = ib_opcode[head_overflow_3] == 0 | ib_opcode[head_overflow_3] == 1 | ib_opcode[head_overflow_3] == 2 | ib_opcode[head_overflow_3] == 4 | ib_opcode[head_overflow_3] == 5 | ib_opcode[head_overflow_3] == 6;
 wire i2_writes_to_reg = ib_opcode[head_overflow_2] == 0 | ib_opcode[head_overflow_2] == 1 | ib_opcode[head_overflow_2] == 2 | ib_opcode[head_overflow_2] == 4 | ib_opcode[head_overflow_2] == 5 | ib_opcode[head_overflow_2] == 6;
 wire i1_writes_to_reg = ib_opcode[head_overflow_1] == 0 | ib_opcode[head_overflow_1] == 1 | ib_opcode[head_overflow_1] == 2 | ib_opcode[head_overflow_1] == 4 | ib_opcode[head_overflow_1] == 5 | ib_opcode[head_overflow_1] == 6;
