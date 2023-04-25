@@ -120,9 +120,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
 reg [7:0] immediate[0:3];
 
 reg op_a_local_dep[0:3]; 
-reg [3:0] op_a_owner[0:3];
 reg op_b_local_dep[0:3]; 
-reg [3:0] op_b_owner[0:3];
 
 reg [3:0] rt[0:3];
 reg uses_rb[0:3];
@@ -169,6 +167,8 @@ wire [7:0] wimm1 = w_immediate[1];
 wire [7:0] wimm2 = w_immediate[2];
 wire [7:0] wimm3 = w_immediate[3];
 
+wire [3:0]ib_a_owner_1 = ib_a_owner[1];
+
 always @(posedge clk) begin 
     integer i;
     integer idx;
@@ -183,14 +183,12 @@ always @(posedge clk) begin
             i == 2 ? head_overflow_2 : 
             i == 3 ? head_overflow_3 : 0;
 
-            ib_a_owner[idx] <= op_a_local_dep[i] ? op_a_owner[i] : (ra_busy[i] ? ra_owner[i] : rob_head_idx + i);
-            ib_b_owner[idx] <= op_b_local_dep[i] ? op_b_owner[i] : (rb_busy[i] ? rb_owner[i] : rob_head_idx + i);
+            ib_a_owner[idx] <= w_op_a_local_dep[i] ? w_op_a_owner[i] : (ra_busy[i] ? ra_owner[i] : rob_head_idx + i);
+            ib_b_owner[idx] <= w_op_b_local_dep[i] ? w_op_b_owner[i] : (rb_busy[i] ? rb_owner[i] : rob_head_idx + i);
             ib_opcode[idx] <= opcode[i];
             immediate[idx] <= w_immediate[i];
             op_a_local_dep[idx] <= w_op_a_local_dep[i];
-            op_a_owner[idx] <= w_op_a_owner[i];
             op_b_local_dep[idx] <= w_op_b_local_dep[i];
-            op_b_owner[idx] <= w_op_b_owner[i];
 
             rt[idx] <= w_rt[i];
             uses_rb[idx] <= w_uses_rb[i];

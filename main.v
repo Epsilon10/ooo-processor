@@ -9,6 +9,8 @@ module Main;
 
     wire clk;
     Clock c0(clk);
+    reg halt = 0;
+    counter counter(halt, clk);
 
     wire [63:0] pc_array;
     wire [59:0] pc_array_truncated = {pc_array[63:49], pc_array[47:33], pc_array[31:17], pc_array[15:1]};

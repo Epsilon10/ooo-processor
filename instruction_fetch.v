@@ -161,6 +161,9 @@ output if_valid_out
     wire op_b_local_dep[0:3];
     wire [3:0] op_b_owner[0:3];
 
+    wire op_a_dep_1 = op_a_local_dep[1];
+    wire op_a_owner_1 = op_a_owner[1];
+
     // ra dependcy checking
     assign op_a_local_dep[0] = 0;
     assign op_a_owner[0] = rob_head_idx;
