@@ -5,6 +5,7 @@ module InstructionBuffer
 (input clk,
 // from instruction fetch unit
 input if_valid, // instruction fetch valid
+input flush, // will flush for 2 cycles if true
 
 input [15:0] opcode_flat, input [31:0] immediate_flat,
 input [3:0]op_a_local_dep_flat, input [15:0] op_a_owner_flat,
@@ -54,6 +55,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     genvar n;
 
     reg first_time = 1;
+    reg last_flush = 0;
 
     wire [3:0] opcode[0:3];
     wire [7:0] w_immediate[0:3];
@@ -207,6 +209,8 @@ always @(posedge clk) begin
     m_num_fetch <= m_num_fetch_wire;
     head <= ~ib_valid ? 0 : head + (m_num_fetch_wire);
     first_time <= ib_valid;
+
+    last_flush <= flush;
 end
 
 wire [3:0]m_out_rt [0:3];
@@ -279,14 +283,16 @@ wire i3_halt = is_halt[head_overflow_3] & ~i0_halt & ~i1_halt & ~i2_halt;
 
 // add load store later
 
+wire flush_now = flush | last_flush;
+
 wire [1:0] head_overflow_1 = head + 1;
 wire [1:0] head_overflow_2 = head + 2;
 wire [1:0] head_overflow_3 = head + 3;
 
-wire stall_0 = ((is_fxu[head] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[head] & ~i0_branch)) & ib_valid; // never need to stall if first one is a halt
-wire stall_1 = ((is_fxu[head_overflow_1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[head_overflow_1] & ~i1_branch) | (is_halt[head_overflow_1] & stall_0)) & ib_valid;
-wire stall_2 = ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[head_overflow_2] & ~i2_branch) | (is_halt[head_overflow_2] & stall_1)) & ib_valid;
-wire stall_3 = ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head_overflow_3] & ~i3_branch) | (is_halt[head_overflow_3] & stall_2)) & ib_valid;
+wire stall_0 = ~flush_now & ((is_fxu[head] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[head] & ~i0_branch)) & ib_valid; // never need to stall if first one is a halt
+wire stall_1 = ~flush_now & ((is_fxu[head_overflow_1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[head_overflow_1] & ~i1_branch) | (is_halt[head_overflow_1] & stall_0)) & ib_valid;
+wire stall_2 = ~flush_now & ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[head_overflow_2] & ~i2_branch) | (is_halt[head_overflow_2] & stall_1)) & ib_valid;
+wire stall_3 = ~flush_now & ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head_overflow_3] & ~i3_branch) | (is_halt[head_overflow_3] & stall_2)) & ib_valid;
 wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
 wire [3:0]m_num_fetch_wire = ib_valid ? (stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))))) : 4;
@@ -295,9 +301,9 @@ wire [2:0]fxu_0_instr = i0_fxu_0 ? head : (i1_fxu_0 ? head_overflow_1 : (i2_fxu_
 wire [2:0]fxu_1_instr = i0_fxu_1 ? head : (i1_fxu_1 ? head_overflow_1 : (i2_fxu_1 ? head_overflow_2 : (i3_fxu_1 ? head_overflow_3 : `NULL)));
 wire [2:0]branch_instr = i0_branch ? head : (i1_branch ? head_overflow_1 : (i2_branch ? head_overflow_2 : (i3_branch ? head_overflow_3 : `NULL)));
 
-wire fxu_0_valid = fxu_0_instr != `NULL;
-wire fxu_1_valid = fxu_1_instr != `NULL;
-wire branch_valid = branch_instr != `NULL;
+wire fxu_0_valid = ~flush_now & fxu_0_instr != `NULL;
+wire fxu_1_valid = ~flush_now & fxu_1_instr != `NULL;
+wire branch_valid = ~flush_now & branch_instr != `NULL;
 
 assign out_fxu_0_instr_valid = fxu_0_valid;
 assign out_fxu_0_rob_idx = rob_head_idx + (fxu_0_instr - head);
@@ -312,7 +318,7 @@ assign out_fxu_0_b_valid = ib_b_valid[fxu_0_instr];
 assign out_fxu_0_b_owner = ib_b_owner[fxu_0_instr];
 assign out_fxu_0_b_value = ib_b_value[fxu_0_instr];
 
-assign out_fxu_1_instr_valid =fxu_1_valid;
+assign out_fxu_1_instr_valid = fxu_1_valid;
 assign out_fxu_1_rob_idx = rob_head_idx + (fxu_1_instr - head);
 assign out_fxu_1_opcode = ib_opcode[fxu_1_instr];
 assign out_fxu_1_i = immediate[fxu_1_instr];

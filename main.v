@@ -167,11 +167,14 @@ module Main;
     output [15:0] rt_owner_flat;
 
     wire [3:0] rob_halt;
+
+    wire flush = 0;
     
     InstructionBuffer iBuffer
     (clk,
 
     if_valid_out,
+    flush,
 
     opcode_out, immediate_out,
     op_a_local_dep_out, op_a_owner_out,
