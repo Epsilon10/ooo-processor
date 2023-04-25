@@ -236,6 +236,7 @@ module Main;
 
     // should probably go to instruction buffer
     wire [3:0] size; // PROBLEM!!!!!!!
+    wire [3:0] flush_cdb = 0;
 
     ROB rob
     (clk,
@@ -247,6 +248,7 @@ module Main;
     cdb_valid,
     indices,
     new_values,
+    flush_cdb,
 
     rob_output_valid,
     rob_output_values,
@@ -255,6 +257,9 @@ module Main;
     register_targets,
     register_write_data,
     register_writers,
+
+    is_branch,
+    branch_target,
 
     size,
     rob_head);

@@ -17,6 +17,7 @@ input [3:0] halt_flat,
 input [3:0] cdb_valid_flat,
 input [15:0] indices_flat,
 input [63:0] new_values_flat,
+input [3:0] flush_flat,
 
 // output the returned values of finished instructions
 output [15:0]out_finished_flat,
@@ -28,6 +29,10 @@ output [15:0]register_targets_flat,
 output [63:0]register_write_data_flat,
 output [15:0]register_writers_flat,
 
+// flushing ouput
+output flush_pipeline,
+output [15:0] pc_target, 
+
 // always output the current size and head
 output [3:0] size,
 output [3:0] head);
@@ -37,6 +42,7 @@ output [3:0] head);
     wire halt [0:3];
     wire [3:0]new_targets[0:3];
     wire cdb_valid[0:3];
+    wire flush[0:3];
     wire [3:0]indices[0:3];
     wire [15:0]new_values[0:3];
     wire cdb_val_3 = cdb_valid[3];
@@ -46,6 +52,7 @@ output [3:0] head);
         for (n=0;n<4;n=n+1) assign halt[3-n] = halt_flat[1*n+0:1*n];
         for (n=0;n<4;n=n+1) assign new_targets[3-n] = new_targets_flat[4*n+3:4*n];
         for (n=0;n<4;n=n+1) assign cdb_valid[3-n] = cdb_valid_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign flush[3-n] = flush_flat[1*n+0:1*n];
         for (n=0;n<4;n=n+1) assign indices[3-n] = indices_flat[4*n+3:4*n];
         for (n=0;n<4;n=n+1) assign new_values[3-n] = new_values_flat[16*n+15:16*n];
     endgenerate
@@ -68,16 +75,21 @@ output [3:0] head);
     reg [15:0] m_return_values[0:15];
     reg m_finished[0:15];
     reg m_halt[0:15];
+    reg m_flush[0:15];
 
     reg m_register_write_enable[0:3];
     reg [3:0] m_register_targets[0:3];
     reg [15:0] m_register_write_data[0:3];
     reg [3:0] m_register_writers[0:3];
 
+    reg m_flush_pipeline = 0;
+    reg [15:0] m_pc_target = 0;
+
     integer i;
     initial begin 
         for(i = 0; i < 16; i++) begin 
             m_finished[i] = 0;
+            m_flush[i] = 0;
         end
 
         for(i = 0; i < 3; i++) begin 
@@ -88,29 +100,40 @@ output [3:0] head);
     assign size = m_head - m_tail;
     assign head = m_head;
 
+    assign flush_pipeline = m_flush_pipeline;
+    assign pc_target = m_pc_target;
+
     always @(posedge clk) begin 
         // write to registers
         for(i = 0; i < 4; i++) begin 
             if (commit[i]) begin 
-                m_register_write_enable[i] <= 1;
-                m_register_targets[i] <= m_target_registers[m_tail + i];
-                m_register_write_data[i] <= m_return_values[m_tail + i];
-                m_register_writers[i] <= m_tail + i;
-
-                m_finished[m_tail + i] <= 0;
-
-                if (m_target_registers[m_tail + i] == 0) begin 
-                    $write("%c", m_return_values[m_tail + i]);
+                if (m_flush[m_tail + i]) begin 
+                    m_flush_pipeline <= 1;
+                    m_pc_target <= m_return_values[m_tail + i];
                 end
+                else begin 
+                    m_register_write_enable[i] <= 1;
+                    m_register_targets[i] <= m_target_registers[m_tail + i];
+                    m_register_write_data[i] <= m_return_values[m_tail + i];
+                    m_register_writers[i] <= m_tail + i;
 
-                if (m_halt[m_tail + i]) begin 
-                    $write("\n");
-                    $finish;
+                    m_finished[m_tail + i] <= 0;
+
+                    if (m_target_registers[m_tail + i] == 0) begin 
+                        $write("%c", m_return_values[m_tail + i]);
+                    end
+
+                    if (m_halt[m_tail + i]) begin 
+                        $write("\n");
+                        $finish;
+                    end
+
+                    m_flush_pipeline <= 0;
                 end
             end
         end
 
-        m_tail <= m_tail + commit[0] + commit[1] + commit[2] + commit[3];     
+        m_tail <= ((last_commit != 15) & m_flush[m_tail + last_commit]) ? m_head : m_tail + commit[0] + commit[1] + commit[2] + commit[3];     
 
         for (i = 0; i < 4; i++) begin 
             if(instructions_valid[i]) begin 
@@ -130,16 +153,28 @@ output [3:0] head);
                 //("%d\n", indices[i]);
                 m_return_values[indices[i]] <= new_values[i];
                 m_finished[indices[i]] <= 1;
+                m_flush[i] <= flush[i];
             end
         end
     end
 
     wire [3:0] commit;
-    wire c_0 = commit[0];
     assign commit[0] = m_finished[m_tail];
-    assign commit[1] = commit[0] & m_finished[m_tail + 1];
-    assign commit[2] = commit[0] & commit[1] & m_finished[m_tail + 2];
-    assign commit[3] = commit[0] & commit[1] & commit[2] & m_finished[m_tail + 3];
+    assign commit[1] = commit[0] & m_finished[m_tail + 1] & ~flush[0];
+    assign commit[2] = commit[0] & commit[1] & m_finished[m_tail + 2] & ~flush[1];
+    assign commit[3] = commit[0] & commit[1] & commit[2] & m_finished[m_tail + 3] & ~flush[2];
+
+    wire c0 = commit[0];
+    wire c1 = commit[1];
+    wire c2 = commit[2];
+    wire c3 = commit[3];
+
+    // if we're flushing, the flush instruction will always be the last commit
+    wire last_commit = 
+    commit[3] ? 3 : 
+    commit[2] ? 2 : 
+    commit[1] ? 1 : 
+    commit[0] ? 0 : 15;
 
     wire [15:0]ret_0 = m_return_values[0];
     wire [15:0]n_0 = new_values[0];
