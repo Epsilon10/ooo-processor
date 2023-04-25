@@ -48,6 +48,7 @@ module Main;
     wire [3:0]is_ld_str_out;
     wire [3:0]is_fxu_out;
     wire [3:0]is_branch_out;
+    wire [3:0]is_halt_out;
 
     // comes from instruction buffer
     wire [2:0] num_slots; 
@@ -79,6 +80,7 @@ module Main;
     is_ld_str_out,
     is_fxu_out,
     is_branch_out,
+    is_halt_out,
 
     ra_out, rb_out,
     if_valid_out);
@@ -180,6 +182,7 @@ module Main;
     is_ld_str_out,
     is_fxu_out,
     is_branch_out,
+    is_halt_out,
 
     ra_value, ra_busy, ra_owner,
     rb_value, rb_busy, rb_owner,

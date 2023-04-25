@@ -26,6 +26,7 @@ output [3:0]uses_rb_out_flat,
 output [3:0]is_ld_str_out_flat,
 output [3:0]is_fxu_out_flat,
 output [3:0]is_branch_out_flat,
+output [3:0]is_halt_out_flat,
 
 // for register file
 output [15:0]ra_out_flat, output [15:0]rb_out_flat,
@@ -59,6 +60,7 @@ output if_valid_out
         for (n=0; n<4; n=n+1) assign is_ld_str_out_flat [1*n+0:1*n] = is_ld_str[3-n];
         for (n=0; n<4; n=n+1) assign is_fxu_out_flat [1*n+0:1*n] = is_fxu[3-n];
         for (n=0; n<4; n=n+1) assign is_branch_out_flat [1*n+0:1*n] = is_branch[3-n];
+        for (n=0; n<4; n=n+1) assign is_halt_out_flat [1*n+0:1*n] = is_halt[3-n];
     endgenerate
 
     reg started = 0;
@@ -89,6 +91,11 @@ output if_valid_out
 
     end
 
+    wire [15:0] mpc0 = m_pc_to_icache[0];
+    wire [15:0] mpc1 = m_pc_to_icache[1];
+    wire [15:0] mpc2 = m_pc_to_icache[2];
+    wire [15:0] mpc3 = m_pc_to_icache[3];
+
     always @(negedge clk) begin
         started <= 1;
         if (num_fetch > 0)
@@ -103,10 +110,10 @@ output if_valid_out
     assign d_instr[2] = instr[2];
     assign d_instr[3] = instr[3];
 
-    wire d_instr_0 = instr[0];
-    wire d_instr_1 = instr[1];
-    wire d_instr_2 = instr[2];
-    wire d_instr_3 = instr[3];
+    wire [15:0] d_instr_0 = instr[0];
+    wire [15:0] d_instr_1 = instr[1];
+    wire [15:0] d_instr_2 = instr[2];
+    wire [15:0] d_instr_3 = instr[3];
 
     wire [3:0] d_opcode[0:3];
 
@@ -223,6 +230,7 @@ output if_valid_out
     wire is_ld_str[0:3];
     wire is_fxu[0:3];
     wire is_branch[0:3];
+    wire is_halt[0:3];
 
     assign is_ld_str[0] = d_opcode[0] == 2 | d_opcode[0] == 3;
     assign is_ld_str[1] = d_opcode[1] == 2 | d_opcode[1] == 3;
@@ -238,6 +246,11 @@ output if_valid_out
     assign is_branch[1] = d_opcode[1] == 2 | d_opcode[1] == 3 | d_opcode[1] == 10 | d_opcode[1] == 11;
     assign is_branch[2] = d_opcode[2] == 2 | d_opcode[2] == 3 | d_opcode[2] == 10 | d_opcode[2] == 11;
     assign is_branch[3] = d_opcode[3] == 2 | d_opcode[3] == 3 | d_opcode[3] == 10 | d_opcode[3] == 11;
+
+    assign is_halt[0] = d_opcode[0] == 15;
+    assign is_halt[1] = d_opcode[1] == 15;
+    assign is_halt[2] = d_opcode[2] == 15;
+    assign is_halt[3] = d_opcode[3] == 15;
 
     wire uses_rb[0:3];
     assign uses_rb[0] = d_opcode[0] == 0 | d_opcode[0] == 1 | d_opcode[0] == 8 | d_opcode[0] == 9 | d_opcode[0] == 10  |  d_opcode[0] == 11;

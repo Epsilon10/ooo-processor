@@ -15,6 +15,7 @@ input [3:0]uses_rb_flat,
 input [3:0]is_ld_str_flat,
 input [3:0]is_fxu_flat,
 input [3:0]is_branch_flat,
+input [3:0]is_halt_flat,
 
 // from regsiter file
 input [63:0]ra_value_flat, input [3:0]ra_busy_flat, input [15:0] ra_owner_flat,
@@ -45,7 +46,7 @@ output out_lsu_b_valid, output [15:0] out_lsu_b_value, output [3:0] out_lsu_b_ow
 output out_branch_instr_valid, output [3:0] out_branch_rob_idx, output out_branch_a_valid, output [15:0] out_branch_a_value, output [3:0] out_branch_a_owner, 
 output out_branch_b_valid, output [15:0] out_branch_b_value, output [3:0] out_branch_b_owner, output [3:0] out_branch_opcode,
 
-output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat, output [3:0] rob_halt,
+output [3:0] out_rob_valid_flat, output [15:0] out_rob_rt_flat, output [3:0] out_rob_halt_flat,
 
 output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15:0] rt_owner_flat
 );
@@ -67,6 +68,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     wire w_is_ld_str[0:3];
     wire w_is_fxu[0:3];
     wire w_is_branch[0:3];
+    wire w_is_halt[0:3];
 
     wire w_rob_output_valid[0:15];
     wire [15:0] w_rob_output_values[0:15];
@@ -86,6 +88,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
         for (n=0;n<4;n=n+1) assign w_is_ld_str[3-n] = is_ld_str_flat[1*n+0:1*n];
         for (n=0;n<4;n=n+1) assign w_is_fxu[3-n] = is_fxu_flat[1*n+0:1*n];
         for (n=0;n<4;n=n+1) assign w_is_branch[3-n] = is_branch_flat[1*n+0:1*n];
+        for (n=0;n<4;n=n+1) assign w_is_halt[3-n] = is_halt_flat[1*n+0:1*n];
 
         for (n=0;n<4;n=n+1) assign ra_value[3-n] = ra_value_flat[16*n+15:16*n];
         for (n=0;n<4;n=n+1) assign ra_busy[3-n] = ra_busy_flat[1*n+0:1*n];
@@ -104,6 +107,7 @@ output [3:0] rt_update_enable_flat, output [15:0] rt_target_reg_flat, output [15
     generate
         for (n=0; n<4; n=n+1) assign out_rob_valid_flat [1*n+0:1*n] = rob_valid[3-n];
         for (n=0; n<4; n=n+1) assign out_rob_rt_flat [4*n+3:4*n] = m_out_rt[3-n];
+        for (n=0; n<4; n=n+1) assign out_rob_halt_flat [1*n+0:1*n] = rob_halt[3-n];
 
         for (n=0; n<4; n=n+1) assign rt_update_enable_flat[1*n+0:1*n] = rt_update_enable[3-n];
         for (n=0; n<4; n=n+1) assign rt_target_reg_flat[4*n+3:4*n] = rt_target_reg[3-n];
@@ -123,6 +127,7 @@ reg uses_rb[0:3];
 reg is_ld_str[0:3];
 reg is_fxu[0:3];
 reg is_branch[0:3];
+reg is_halt[0:3];
 
 reg [15:0]ra_value[0:3];
 reg ra_busy[0:3];
@@ -157,27 +162,40 @@ wire [7:0]imm_1 = immediate[1];
 wire [7:0]imm_2 = immediate[2];
 wire [7:0]imm_3 = immediate[3];
 
+wire [7:0] wimm0 = w_immediate[0];
+wire [7:0] wimm1 = w_immediate[1];
+wire [7:0] wimm2 = w_immediate[2];
+wire [7:0] wimm3 = w_immediate[3];
+
 always @(posedge clk) begin 
     integer i;
+    integer idx;
 
     for (i = 0; i < 4; i++) begin
        // $write("cur itr %d\n", i);
-        if (~(ib_valid & stall_array[head + i])) begin
+        if (~(ib_valid & stall_array[i])) begin
            // $write("THIS IS VALID: %d\n",i);
-            ib_a_owner[head+i] <= op_a_local_dep[head+i] ? op_a_owner[head+i] : (ra_busy[head+i] ? ra_owner[head+i] : rob_head_idx + i);
-            ib_b_owner[head+i] <= op_b_local_dep[head+i] ? op_b_owner[head+i] : (rb_busy[head+i] ? rb_owner[head+i] : rob_head_idx + i);
-            ib_opcode[head+i] <= opcode[head+i];
-            immediate[head+i] <= w_immediate[head+i];
-            op_a_local_dep[head+i] <= w_op_a_local_dep[head+i];
-            op_a_owner[head+i] <= w_op_a_owner[head+i];
-            op_b_local_dep[head+i] <= w_op_b_local_dep[head+i];
-            op_b_owner[head+i] <= w_op_b_owner[head+i];
+            idx =
+            i == 0 ? head : 
+            i == 1 ? head_overflow_1 : 
+            i == 2 ? head_overflow_2 : 
+            i == 3 ? head_overflow_3 : 0;
 
-            rt[head+i] <= w_rt[head+i];
-            uses_rb[head+i] <= w_uses_rb[head+i];
-            is_ld_str[head+i] <= w_is_ld_str[head+i];
-            is_fxu[head+i] <= w_is_fxu[head+i];
-            is_branch[head+i] <= w_is_branch[head+i];
+            ib_a_owner[idx] <= op_a_local_dep[i] ? op_a_owner[i] : (ra_busy[i] ? ra_owner[i] : rob_head_idx + i);
+            ib_b_owner[idx] <= op_b_local_dep[i] ? op_b_owner[i] : (rb_busy[i] ? rb_owner[i] : rob_head_idx + i);
+            ib_opcode[idx] <= opcode[i];
+            immediate[idx] <= w_immediate[i];
+            op_a_local_dep[idx] <= w_op_a_local_dep[i];
+            op_a_owner[idx] <= w_op_a_owner[i];
+            op_b_local_dep[idx] <= w_op_b_local_dep[i];
+            op_b_owner[idx] <= w_op_b_owner[i];
+
+            rt[idx] <= w_rt[i];
+            uses_rb[idx] <= w_uses_rb[i];
+            is_ld_str[idx] <= w_is_ld_str[i];
+            is_fxu[idx] <= w_is_fxu[i];
+            is_branch[idx] <= w_is_branch[i];
+            is_halt[idx] <= w_is_halt[i];
         end
     end
 
@@ -202,8 +220,6 @@ assign stall_array[0] = stall_0;
 assign stall_array[1] = stall_1;
 assign stall_array[2] = stall_2;
 assign stall_array[3] = stall_3;
-
-wire st_0 = stall_array[0];
 
 wire is_mov_imm_0 = ib_opcode[0] == 5 | ib_opcode[0] == 5;
 wire is_mov_imm_1 = ib_opcode[1] == 5 | ib_opcode[1] == 6;
@@ -236,7 +252,6 @@ wire is_fxu_1_w = is_fxu[head_overflow_1];
 wire is_fxu_2_w = is_fxu[head_overflow_2];
 wire is_fxu_3_w = is_fxu[head_overflow_3];
 
-
 wire i0_fxu_0 = is_fxu[head] & ~fxu_0_full;
 wire i0_fxu_1 = is_fxu[head] & ~i0_fxu_0 & ~fxu_1_full;
 
@@ -253,9 +268,14 @@ wire i3_fxu_0 = is_fxu[head_overflow_3] & ~fxu_0_full & ~i0_fxu_0 & ~i1_fxu_0 & 
 wire i3_fxu_1 = is_fxu[head_overflow_3] & ~i3_fxu_0 & ~fxu_1_full & ~i0_fxu_1 & ~i1_fxu_1 & ~i2_fxu_1;
 
 wire i0_branch = is_branch[head] & ~branch_full;
-wire i1_branch = is_branch[head+1] & ~branch_full & ~i0_branch;
-wire i2_branch = is_branch[head+2] & ~branch_full & ~i0_branch & ~i1_branch;
-wire i3_branch = is_branch[head+3] & ~branch_full & ~i0_branch & ~i1_branch & ~i2_branch;
+wire i1_branch = is_branch[head_overflow_1] & ~branch_full & ~i0_branch;
+wire i2_branch = is_branch[head_overflow_2] & ~branch_full & ~i0_branch & ~i1_branch;
+wire i3_branch = is_branch[head_overflow_3] & ~branch_full & ~i0_branch & ~i1_branch & ~i2_branch;
+
+wire i0_halt = is_halt[head];
+wire i1_halt = is_halt[head_overflow_1] & ~i0_halt;
+wire i2_halt = is_halt[head_overflow_2] & ~i0_halt & ~i1_halt;
+wire i3_halt = is_halt[head_overflow_3] & ~i0_halt & ~i1_halt & ~i2_halt;
 
 // add load store later
 
@@ -263,10 +283,10 @@ wire [1:0] head_overflow_1 = head + 1;
 wire [1:0] head_overflow_2 = head + 2;
 wire [1:0] head_overflow_3 = head + 3;
 
-wire stall_0 = ((is_fxu[head] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[head] & ~i0_branch)) & ib_valid;
-wire stall_1 = ((is_fxu[head_overflow_1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[head+1] & ~i1_branch)) & ib_valid;
-wire stall_2 = ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[head+2] & ~i2_branch)) & ib_valid;
-wire stall_3 = ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head+3] & ~i3_branch)) & ib_valid;
+wire stall_0 = ((is_fxu[head] & (~i0_fxu_0 & ~i0_fxu_1)) | (is_branch[head] & ~i0_branch)) & ib_valid; // never need to stall if first one is a halt
+wire stall_1 = ((is_fxu[head_overflow_1] & (~i1_fxu_0 & ~i1_fxu_1)) | (is_branch[head_overflow_1] & ~i1_branch) | (is_halt[head_overflow_1] & stall_0)) & ib_valid;
+wire stall_2 = ((is_fxu[head_overflow_2] & (~i2_fxu_0 & ~i2_fxu_1)) | (is_branch[head_overflow_2] & ~i2_branch) | (is_halt[head_overflow_2] & stall_1)) & ib_valid;
+wire stall_3 = ((is_fxu[head_overflow_3] & (~i3_fxu_0 & ~i3_fxu_1)) | (is_branch[head_overflow_3] & ~i3_branch) | (is_halt[head_overflow_3] & stall_2)) & ib_valid;
 wire stall_none = ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
 wire [3:0]m_num_fetch_wire = ib_valid ? (stall_none ? 4 : (stall_0 ? 0 : (stall_1 ? 1 : (stall_2 ? 2 : (stall_3 ? 3 : `NULL))))) : 4;
@@ -324,16 +344,18 @@ assign rob_valid[1] = ~undef_0 & ~undef_1 & ib_valid & ~stall_0 & ~stall_1;
 assign rob_valid[2] = ~undef_0 & ~undef_1 & ~undef_2 & ib_valid & ~stall_0 & ~stall_1 & ~stall_2;
 assign rob_valid[3] = ~undef_0 & ~undef_1 & ~undef_2 & ~undef_3 & ib_valid & ~stall_0 & ~stall_1 & ~stall_2 & ~stall_3;
 
-wire undef_0 = ib_opcode[head] > 12;
-wire undef_1 = ib_opcode[head_overflow_1] > 12;
-wire undef_2 = ib_opcode[head_overflow_2] > 12;
-wire undef_3 = ib_opcode[head_overflow_3] > 12;
+wire undef_0 = ib_opcode[head] > 12 && ib_opcode[head] != 15;
+wire undef_1 = ib_opcode[head_overflow_1] > 12 && ib_opcode[head_overflow_1] != 15;
+wire undef_2 = ib_opcode[head_overflow_2] > 12 && ib_opcode[head_overflow_2] != 15;
+wire undef_3 = ib_opcode[head_overflow_3] > 12 && ib_opcode[head_overflow_3] != 15;
 
-// reversed
-assign rob_halt[3] = ib_valid & undef_0;
-assign rob_halt[2] = ib_valid & (undef_1 | undef_0);
-assign rob_halt[1] = ib_valid & (undef_2 | undef_1 | undef_0);
-assign rob_halt[0] = ib_valid & (undef_3 | undef_2 | undef_1 | undef_0);
+wire rob_halt[0:3];
+
+// keep it in same format as everything else with flattening and unflattening
+assign rob_halt[0] = ib_valid & is_halt[head] & !stall_0;
+assign rob_halt[1] = ib_valid & is_halt[head_overflow_1] & !stall_1;
+assign rob_halt[2] = ib_valid & is_halt[head_overflow_2] & !stall_2;
+assign rob_halt[3] = ib_valid & is_halt[head_overflow_3] & !stall_3;
 
 wire i3_writes_to_reg = ib_opcode[head_overflow_3] == 0 | ib_opcode[head_overflow_3] == 1 | ib_opcode[head_overflow_3] == 2 | ib_opcode[head_overflow_3] == 4 | ib_opcode[head_overflow_3] == 5 | ib_opcode[head_overflow_3] == 6;
 wire i2_writes_to_reg = ib_opcode[head_overflow_2] == 0 | ib_opcode[head_overflow_2] == 1 | ib_opcode[head_overflow_2] == 2 | ib_opcode[head_overflow_2] == 4 | ib_opcode[head_overflow_2] == 5 | ib_opcode[head_overflow_2] == 6;
