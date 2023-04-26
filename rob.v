@@ -17,7 +17,7 @@ input [3:0] halt_flat,
 input [3:0] cdb_valid_flat,
 input [15:0] indices_flat,
 input [63:0] new_values_flat,
-input [3:0] flush_flat,
+input [3:0] flush_flat, // only 1 flush instruction can arrive in a cycle (1 branch unit)
 
 // output the returned values of finished instructions
 output [15:0]out_finished_flat,
@@ -110,6 +110,7 @@ output [3:0] head);
                 if (m_flush[m_tail + i]) begin 
                     m_flush_pipeline <= 1;
                     m_pc_target <= m_return_values[m_tail + i];
+                    $write("jumping!\n");
                 end
                 else begin 
                     m_register_write_enable[i] <= 1;

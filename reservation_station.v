@@ -1,7 +1,7 @@
 `timescale 1ps/1ps
 
 module ReservationStation(input clk, 
-    input wen, 
+    input wen, input flush,
     input [3:0]instr_index, input [3:0]instr_opcode, input [7:0]instr_i, input [3:0]in_op1, input [3:0]in_op2, input [15:0]in_val1, input [15:0]in_val2, input is_val_op1, input is_val_op2,
     output [3:0]out_instr_index, output [3:0]out_opcode, output [7:0]out_i, output out_valid,
     output [15:0]out_val1, output [15:0]out_val2, output is_full,
@@ -64,149 +64,153 @@ module ReservationStation(input clk,
     wire [3:0] i0_opcode = instr_opcodes[0];
     wire i0_op1_valid = op1_valid[0];
     wire i0_op2_valid = op2_valid[0];
+
     always @(posedge clk) begin
-        // write an instruction to a free spot in the reservation station
-        if (wen & ~instruction_valid[2'b00]) begin
-            instruction_valid[2'b00] <= 1;
-            instr_opcodes[2'b00] <= instr_opcode;
-            instr_i_values[2'b00] <= instr_i;
-            instruction_indices[2'b00] <= instr_index;
+        // flushing is this simple?
+        if (~flush) begin
+            // write an instruction to a free spot in the reservation station
+            if (wen & ~instruction_valid[2'b00]) begin
+                instruction_valid[2'b00] <= 1;
+                instr_opcodes[2'b00] <= instr_opcode;
+                instr_i_values[2'b00] <= instr_i;
+                instruction_indices[2'b00] <= instr_index;
 
-            op1[2'b00] <= in_op1;
-            op2[2'b00] <= in_op2;
+                op1[2'b00] <= in_op1;
+                op2[2'b00] <= in_op2;
 
-            val1[2'b00] <= in_val1;
-            val2[2'b00] <= in_val2;
+                val1[2'b00] <= in_val1;
+                val2[2'b00] <= in_val2;
 
-            op1_valid[2'b00] <= is_val_op1;
-            op2_valid[2'b00] <= is_val_op2;
-        end
-        else if (wen & ~instruction_valid[2'b01]) begin
-            instruction_valid[2'b01] <= 1;
-            instr_opcodes[2'b01] <= instr_opcode;
-            instr_i_values[2'b01] <= instr_i;
-            instruction_indices[2'b01] <= instr_index;
-
-            op1[2'b01] <= in_op1;
-            op2[2'b01] <= in_op2;
-
-            val1[2'b01] <= in_val1;
-            val2[2'b01] <= in_val2;
-
-            op1_valid[2'b01] <= is_val_op1;
-            op2_valid[2'b01] <= is_val_op2;
-        end
-        else if (wen & ~instruction_valid[2'b10]) begin
-            instruction_valid[2'b10] <= 1;
-            instr_opcodes[2'b10] <= instr_opcode;
-            instr_i_values[2'b10] <= instr_i;
-            instruction_indices[2'b10] <= instr_index;
-
-            op1[2'b10] <= in_op1;
-            op2[2'b10] <= in_op2;
-
-            val1[2'b10] <= in_val1;
-            val2[2'b10] <= in_val2;
-
-            op1_valid[2'b10] <= is_val_op1;
-            op2_valid[2'b10] <= is_val_op2;
-        end
-        else if (wen & ~instruction_valid[2'b11]) begin
-            instruction_valid[2'b11] <= 1;
-            instr_opcodes[2'b11] <= instr_opcode;
-            instr_i_values[2'b11] <= instr_i;
-            instruction_indices[2'b11] <= instr_index;
-
-            op1[2'b11] <= in_op1;
-            op2[2'b11] <= in_op2;
-
-            val1[2'b11] <= in_val1;
-            val2[2'b11] <= in_val2;
-
-            op1_valid[2'b11] <= is_val_op1;
-            op2_valid[2'b11] <= is_val_op2;
-        end
-
-        is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
-
-        // update any operands which aren't ready if common data bus has value  
-        for(i = 0; i < 4; i = i + 1) begin
-            if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
-                val1[i] <= cdb_result[0];
-                op1_valid[i] <= 1;
+                op1_valid[2'b00] <= is_val_op1;
+                op2_valid[2'b00] <= is_val_op2;
             end
-            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op1[i])) begin
-                val1[i] <= cdb_result[1];
-                op1_valid[i] <= 1;
+            else if (wen & ~instruction_valid[2'b01]) begin
+                instruction_valid[2'b01] <= 1;
+                instr_opcodes[2'b01] <= instr_opcode;
+                instr_i_values[2'b01] <= instr_i;
+                instruction_indices[2'b01] <= instr_index;
+
+                op1[2'b01] <= in_op1;
+                op2[2'b01] <= in_op2;
+
+                val1[2'b01] <= in_val1;
+                val2[2'b01] <= in_val2;
+
+                op1_valid[2'b01] <= is_val_op1;
+                op2_valid[2'b01] <= is_val_op2;
             end
-            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op1[i])) begin
-                val1[i] <= cdb_result[2];
-                op1_valid[i] <= 1;
+            else if (wen & ~instruction_valid[2'b10]) begin
+                instruction_valid[2'b10] <= 1;
+                instr_opcodes[2'b10] <= instr_opcode;
+                instr_i_values[2'b10] <= instr_i;
+                instruction_indices[2'b10] <= instr_index;
+
+                op1[2'b10] <= in_op1;
+                op2[2'b10] <= in_op2;
+
+                val1[2'b10] <= in_val1;
+                val2[2'b10] <= in_val2;
+
+                op1_valid[2'b10] <= is_val_op1;
+                op2_valid[2'b10] <= is_val_op2;
             end
-            else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op1[i])) begin
-                val1[i] <= cdb_result[3];
-                op1_valid[i] <= 1;
+            else if (wen & ~instruction_valid[2'b11]) begin
+                instruction_valid[2'b11] <= 1;
+                instr_opcodes[2'b11] <= instr_opcode;
+                instr_i_values[2'b11] <= instr_i;
+                instruction_indices[2'b11] <= instr_index;
+
+                op1[2'b11] <= in_op1;
+                op2[2'b11] <= in_op2;
+
+                val1[2'b11] <= in_val1;
+                val2[2'b11] <= in_val2;
+
+                op1_valid[2'b11] <= is_val_op1;
+                op2_valid[2'b11] <= is_val_op2;
             end
 
+            is_full_reg <= instruction_valid[0] & instruction_valid[1] & instruction_valid[2] & instruction_valid[3];
 
-            if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op2[i])) begin
-                val2[i] <= cdb_result[0];
-                op2_valid[i] <= 1;
-            end
-            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op2[i])) begin
-                val2[i] <= cdb_result[1];
-                op2_valid[i] <= 1;
-            end
-            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op2[i])) begin
-                val2[i] <= cdb_result[2];
-                op2_valid[i] <= 1;
-            end
-            else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op2[i])) begin
-                val2[i] <= cdb_result[3];
-                op2_valid[i] <= 1;
-            end
-        end
-        
+            // update any operands which aren't ready if common data bus has value  
+            for(i = 0; i < 4; i = i + 1) begin
+                if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op1[i])) begin
+                    val1[i] <= cdb_result[0];
+                    op1_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op1[i])) begin
+                    val1[i] <= cdb_result[1];
+                    op1_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op1[i])) begin
+                    val1[i] <= cdb_result[2];
+                    op1_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op1_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op1[i])) begin
+                    val1[i] <= cdb_result[3];
+                    op1_valid[i] <= 1;
+                end
 
-        // output next ready instruction
-        if (instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
-            instruction_valid[2'b00] <= 0;
-            out_instr_index_reg <= instruction_indices[2'b00];
-            out_opcode_reg <= instr_opcodes[2'b00]; 
-            out_i_reg <= instr_i_values[2'b00];
-            out_valid_reg <= 1;      
-            out_val1_reg <= val1[2'b00];       
-            out_val2_reg <= val2[2'b00];
-        end
-        else if (instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
-            instruction_valid[2'b01] <= 0;
-            out_instr_index_reg <= instruction_indices[2'b01];
-            out_opcode_reg <= instr_opcodes[2'b01]; 
-            out_i_reg <= instr_i_values[2'b01];
-            out_valid_reg <= 1;      
-            out_val1_reg <= val1[2'b01];       
-            out_val2_reg <= val2[2'b01];
-        end
-        else if (instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
-            instruction_valid[2'b10] <= 0;
-            out_instr_index_reg <= instruction_indices[2'b10];
-            out_opcode_reg <= instr_opcodes[2'b10]; 
-            out_i_reg <= instr_i_values[2'b10];
-            out_valid_reg <= 1;      
-            out_val1_reg <= val1[2'b10];       
-            out_val2_reg <= val2[2'b10];
-        end
-        else if (instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
-            instruction_valid[2'b11] <= 0;
-            out_instr_index_reg <= instruction_indices[2'b11];
-            out_opcode_reg <= instr_opcodes[2'b11]; 
-            out_i_reg <= instr_i_values[2'b11];
-            out_valid_reg <= 1;      
-            out_val1_reg <= val1[2'b11];       
-            out_val2_reg <= val2[2'b11];
-        end
-        else begin
-            out_valid_reg <= 0;
+
+                if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[0] & (cdb_rob_index[0] == op2[i])) begin
+                    val2[i] <= cdb_result[0];
+                    op2_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[1] & (cdb_rob_index[1] == op2[i])) begin
+                    val2[i] <= cdb_result[1];
+                    op2_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[2] & (cdb_rob_index[2] == op2[i])) begin
+                    val2[i] <= cdb_result[2];
+                    op2_valid[i] <= 1;
+                end
+                else if (instruction_valid[i] & ~op2_valid[i] & cdb_valid[3] & (cdb_rob_index[3] == op2[i])) begin
+                    val2[i] <= cdb_result[3];
+                    op2_valid[i] <= 1;
+                end
+            end
+
+
+            // output next ready instruction
+            if (instruction_valid[2'b00] & op1_valid[2'b00] & op2_valid[2'b00]) begin
+                instruction_valid[2'b00] <= 0;
+                out_instr_index_reg <= instruction_indices[2'b00];
+                out_opcode_reg <= instr_opcodes[2'b00]; 
+                out_i_reg <= instr_i_values[2'b00];
+                out_valid_reg <= 1;      
+                out_val1_reg <= val1[2'b00];       
+                out_val2_reg <= val2[2'b00];
+            end
+            else if (instruction_valid[2'b01] & op1_valid[2'b01] & op2_valid[2'b01]) begin
+                instruction_valid[2'b01] <= 0;
+                out_instr_index_reg <= instruction_indices[2'b01];
+                out_opcode_reg <= instr_opcodes[2'b01]; 
+                out_i_reg <= instr_i_values[2'b01];
+                out_valid_reg <= 1;      
+                out_val1_reg <= val1[2'b01];       
+                out_val2_reg <= val2[2'b01];
+            end
+            else if (instruction_valid[2'b10] & op1_valid[2'b10] & op2_valid[2'b10]) begin
+                instruction_valid[2'b10] <= 0;
+                out_instr_index_reg <= instruction_indices[2'b10];
+                out_opcode_reg <= instr_opcodes[2'b10]; 
+                out_i_reg <= instr_i_values[2'b10];
+                out_valid_reg <= 1;      
+                out_val1_reg <= val1[2'b10];       
+                out_val2_reg <= val2[2'b10];
+            end
+            else if (instruction_valid[2'b11] & op1_valid[2'b11] & op2_valid[2'b11]) begin
+                instruction_valid[2'b11] <= 0;
+                out_instr_index_reg <= instruction_indices[2'b11];
+                out_opcode_reg <= instr_opcodes[2'b11]; 
+                out_i_reg <= instr_i_values[2'b11];
+                out_valid_reg <= 1;      
+                out_val1_reg <= val1[2'b11];       
+                out_val2_reg <= val2[2'b11];
+            end
+            else begin
+                out_valid_reg <= 0;
+            end
         end
     end
 

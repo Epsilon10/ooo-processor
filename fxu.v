@@ -1,12 +1,13 @@
 `timescale 1ps/1ps
 
 module FXU
-(input clk,
+(input clk, input flush,
 input [3:0] in_opcode, input [3:0] in_index, input in_valid,
 input [15:0] in_va, input [15:0] in_vb, input [7:0] in_i, // we receive decoded values
 output out_valid, output [3:0] out_rob_index, output [15:0] out_return_value);
 
     reg m_valid = 0;
+    reg m_flush = 0;
     reg [3:0] opcode;
     reg [3:0] rob_index;
     reg [15:0] va;
@@ -15,6 +16,7 @@ output out_valid, output [3:0] out_rob_index, output [15:0] out_return_value);
 
     always @(posedge clk) begin 
         m_valid <= in_valid;
+        m_flush <= flush;
         opcode <= in_opcode;
         rob_index <= in_index;
         va <= in_va;
@@ -36,7 +38,7 @@ output out_valid, output [3:0] out_rob_index, output [15:0] out_return_value);
     isMovh ? {i, va[7:0]} : 
     0;
 
-    assign out_valid = m_valid;
+    assign out_valid = m_valid & ~m_flush;
     assign out_rob_index = rob_index;
 
 endmodule

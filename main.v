@@ -169,14 +169,12 @@ module Main;
     output [15:0] rt_owner_flat;
 
     wire [3:0] rob_halt;
-
-    wire flush = 0;
     
     InstructionBuffer iBuffer
     (clk,
 
     if_valid_out,
-    flush,
+    is_branch,
 
     opcode_out, immediate_out,
     op_a_local_dep_out, op_a_owner_out,
@@ -225,7 +223,7 @@ module Main;
 
     wire [3:0]cdb_valid = {cdb_valid_3, cdb_valid_2, cdb_valid_1, cdb_valid_0};
 
-    assign cdb_valid[0] = 0; // TODO remove once branch unit added
+    //assign cdb_valid[0] = 0; // TODO remove once branch unit added
     assign cdb_valid[1] = 0; // TODO remove once LSU added
     wire [15:0] indices;
     wire [63:0] new_values;
@@ -238,7 +236,8 @@ module Main;
 
     // should probably go to instruction buffer
     wire [3:0] size; // PROBLEM!!!!!!!
-    wire [3:0] flush_cdb = 0;
+    wire off = 0;
+    wire [3:0] flush_cdb = {off, off, off, cdb_valid_0}; // if the branch unit is on the cdb, we need to flush
 
     ROB rob
     (clk,
@@ -278,8 +277,8 @@ module Main;
     // input cdb_valid[0:3], input [3:0]cdb_rob_index[0:3], input [15:0]cdb_result[0:3]
 
     ReservationStation fxu0_reservationstation 
-    (clk, 
-    out_fxu_0_instr_valid, 
+    (clk,
+    out_fxu_0_instr_valid, is_branch,
     out_fxu_0_rob_idx, out_fxu_0_opcode, out_fxu_0_i, out_fxu_0_a_owner, out_fxu_0_b_owner, out_fxu_0_a_value, out_fxu_0_b_value, out_fxu_0_a_valid, out_fxu_0_b_valid,
     res_fxu0_out_instr_index, res_fxu0_out_opcode, res_fxu0_out_i, res_fxu0_out_valid,
     res_fxu0_op1_value, res_fxu0_op2_value, fxu_0_full,
@@ -288,7 +287,7 @@ module Main;
 
 
     FXU fxu0
-    (clk,
+    (clk, is_branch,
     res_fxu0_out_opcode, res_fxu0_out_instr_index, res_fxu0_out_valid,
     res_fxu0_op1_value, res_fxu0_op2_value, res_fxu0_out_i, 
     cdb_valid_3, indices[15:12], new_values[63:48]
@@ -303,8 +302,8 @@ module Main;
     wire [15:0]res_fxu1_op2_value;
 
     ReservationStation fxu1_reservationstation 
-    (clk, 
-    out_fxu_1_instr_valid, 
+    (clk,
+    out_fxu_1_instr_valid, is_branch,
     out_fxu_1_rob_idx, out_fxu_1_opcode, out_fxu_1_i, out_fxu_1_a_owner, out_fxu_1_b_owner, out_fxu_1_a_value, out_fxu_1_b_value, out_fxu_1_a_valid, out_fxu_1_b_valid,
     res_fxu1_out_instr_index, res_fxu1_out_opcode, res_fxu1_out_i, res_fxu1_out_valid,
     res_fxu1_op1_value, res_fxu1_op2_value, fxu_1_full,
@@ -313,10 +312,38 @@ module Main;
 
 
     FXU fxu1
-    (clk,
+    (clk, is_branch,
     res_fxu1_out_opcode, res_fxu1_out_instr_index, res_fxu1_out_valid,
     res_fxu1_op1_value, res_fxu1_op2_value, res_fxu1_out_i, 
     cdb_valid_2, indices[11:8], new_values[47:32]
+    );
+
+
+    wire [3:0]res_branch_out_instr_index;
+    wire [3:0]res_branch_out_opcode;
+    wire [7:0]res_branch_out_i;
+    wire res_branch_out_valid;
+    wire [15:0]res_branch_op1_value;
+    wire [15:0]res_branch_op2_value;
+
+    wire [7:0]extra; 
+    wire no = 0;
+
+    ReservationStation branch_unit_reservationstation 
+    (clk,
+    out_branch_instr_valid, no,
+    out_branch_rob_idx, out_branch_opcode, extra, out_branch_a_owner, out_branch_b_owner, out_branch_a_value, out_branch_b_value, out_branch_a_valid, out_branch_b_valid,
+    res_branch_out_instr_index, res_branch_out_opcode, res_branch_out_i, res_branch_out_valid,
+    res_branch_op1_value, res_branch_op2_value, branch_full,
+    // common data bus input
+    cdb_valid, indices, new_values);
+
+
+    BranchUnit branch_unit
+    (clk,
+    res_branch_out_opcode, res_branch_out_instr_index, res_branch_out_valid,
+    res_branch_op1_value, res_branch_op2_value, 
+    cdb_valid_0, indices[3:0], new_values[15:0]
     );
 
 
